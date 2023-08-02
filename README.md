@@ -13,9 +13,9 @@
 ## Dependencies
 #### Fabtory Fabrication Control 
 * [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
-
+  
+#### Assembly Information Model 
 * [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
-#### Assembly Information Model    
     (env) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (env) python -m compas_rhino.install -p assembly_information_model
     
