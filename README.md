@@ -50,8 +50,8 @@ Execute the commands below in Anaconda Prompt:
 * Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder.
 
 #### Install the repository in editable mode
-    (afab) python -m pip install -e <your_path>/<your_repository_name>
-    (afab) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
+    (cae) python -m pip install -e <your_path>/<your_repository_name>
+    (cae) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
 
 ## Credits
 
