@@ -17,10 +17,42 @@
 
     (env) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (env) python -m compas_rhino.install -p assembly_information_model
+
+
+## Getting Started
+
+### 1. Setting up the Anaconda environment with all dependencies
+
+Execute the commands below in Anaconda Prompt:
+
+#### Install Compas & Compas Fab
+ 
+    (base) conda config --add channels conda-forge
+    (base) conda create -n cae compas_fab --yes
+    (base) conda activate cae
     
-### 3. Cloning and installing the repository
+#### Install on Rhino
+    
+    (cae) python -m compas_rhino.install -v 7.0
+    
+#### Verify Installation
+
+    (afab) pip show compas_fab
+    
+    Name: compas-fab
+    Version: 0.XX.X
+    Summary: Robotic fabrication package for the COMPAS Framework
+    ....
+### 2. Cloning and installing the repository
 
 #### Repository Cloning
-
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
-* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/robotic_brick_envelopes) into you workspace folder.
+* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder.
+
+#### Install the repository in editable mode
+    (afab) python -m pip install -e <your_path>/<your_repository_name>
+    (afab) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
+
+## Credits
+
+This package was created by Julia Fleckenstein at `@augmentedfabricationlab`
