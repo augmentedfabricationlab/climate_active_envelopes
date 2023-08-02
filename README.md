@@ -12,11 +12,13 @@
 
 ## Dependencies
 #### [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
+    (cae) conda install compas_rrc
+    (cae) python -m compas_rhino.install -v 7.0
   
 #### [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) 
 
-    (env) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
-    (env) python -m compas_rhino.install -p assembly_information_model
+    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
+    (cae) python -m compas_rhino.install -p assembly_information_model
 
 
 ## Getting Started
