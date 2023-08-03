@@ -17,9 +17,6 @@
   
 #### [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) 
 
-    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
-    (cae) python -m compas_rhino.install -p assembly_information_model
-
 
 ## Getting Started
 
@@ -53,6 +50,9 @@ Execute the commands below in Anaconda Prompt:
 
 #### Install the repository in editable mode
     (cae) python -m pip install -e <your_path>/<your_repository_name>
+    (cae) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
+
+    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (cae) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
 
 ## Credits
