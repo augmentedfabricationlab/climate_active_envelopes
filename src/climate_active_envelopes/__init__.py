@@ -21,7 +21,7 @@ Describe typical classes found in project
 """
 
 from .sample_module import SampleClassName
-from .assembly import CAEAssembly, CAEElement
+from .assembly import wall_assembly, brick_assembly, CAEElement
 from .export import Exporter
 
-__all__ = ['SampleClassName', 'CAEAssembly', 'CAEElement', 'Exporter']
+__all__ = ['SampleClassName', 'wall_assembly', 'brick_assembly', 'CAEElement', 'Exporter']

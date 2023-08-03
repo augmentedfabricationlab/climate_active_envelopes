@@ -19,24 +19,3 @@ class CAEAssembly(Assembly):
                  default_connection_attributes=None):
 
         super(CAEAssembly, self).__init__()
-
-    # @property
-    # def data(self):
-    #     """Return a data dictionary of the assembly.
-    #     """
-    #     # Network data does not recursively serialize to data...
-    #     d = self.network.data
-
-    #     # so we need to trigger that for elements stored in nodes
-    #     node = {}
-    #     for vkey, vdata in d['node'].items():
-    #         node[vkey] = {key: vdata[key] for key in vdata.keys() if key != 'element'}
-    #         node[vkey]['element'] = vdata['element'].to_data()
-
-    #         if 'frame_est' in vdata:
-    #             if node[vkey]['frame_est']:
-    #                 node[vkey]['frame_est'] = node[vkey]['frame_est'].to_data()
-
-    #     d['node'] = node
-
-    #     return d

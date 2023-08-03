@@ -36,3 +36,17 @@ class CAEElement(Element):
         self.connector_2_state = True
         self._type = ''
         self._base_frame = None
+    
+    @classmethod
+    def from_rhinomesh_geometry(cls, rhino_mesh, frame):
+        """Class method for constructing a block from a Rhino mesh.
+
+        Parameters
+        ----------
+
+        """
+        from compas_rhino.geometry import RhinoMesh
+        element = cls(frame)
+        rhmesh = RhinoMesh.from_geometry(rhino_mesh)
+        element._mesh = element._source = rhmesh.to_compas()
+        return element
