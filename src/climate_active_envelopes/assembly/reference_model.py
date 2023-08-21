@@ -7,18 +7,19 @@ import os
 from copy import deepcopy
 from compas.datastructures import Network, network
 
-from .brick_element import Element
+from .reference_element import ReferenceElement
 
 from .utilities import FromToData
 from .utilities import FromToJson
 
-__all__ = ['Assembly']
+__all__ = ['ReferenceModel']
 
 
-class Assembly(FromToData, FromToJson):
-    """A data structure for discrete element assemblies.
+class ReferenceModel(FromToData, FromToJson):
+    """A data structure for the 
+    climate active envelopes' reference model
 
-    An assembly is essentially a network of assembly elements.
+    The reference model is essentially a network of building elements, i.e., outer walls, inner walls, slabs.
     Each element is represented by a node of the network.
     Each interface or connection between elements is represented by an edge of the network.
 
@@ -54,14 +55,13 @@ class Assembly(FromToData, FromToJson):
                  default_connection_attributes=None):
 
         self.network = Network()
-        self.network.attributes.update({'name': 'Assembly'})
+        self.network.attributes.update({'name': 'ReferenceModel'})
 
         if attributes is not None:
             self.network.attributes.update(attributes)
 
         self.network.default_node_attributes.update({
-            'is_planned': False,
-            'is_placed': False
+            'element_type': "outer_wall"
         })
 
         if default_element_attributes is not None:
@@ -82,19 +82,6 @@ class Assembly(FromToData, FromToJson):
     @name.setter
     def name(self, value):
         self.network.attributes['name'] = value
-
-
-    def get_attribute(self, key):
-        """key : The string of the attribute key."""
-        return self.network.attributes.get(key, None)
-
-    
-    def set_attribute(self, key, value):
-        """key : The string of the attribute key.
-            value: the value
-        """
-        self.network.attributes[key] = value
-
 
     def number_of_elements(self):
         """Compute the number of elements of the assembly.
@@ -136,7 +123,7 @@ class Assembly(FromToData, FromToJson):
     def data(self, data):
         # Deserialize elements from node dictionary
         for _vkey, vdata in data['node'].items():
-            vdata['element'] = Element.from_data(vdata['element'])
+            vdata['element'] = ReferenceElement.from_data(vdata['element'])
 
         self.network = Network.from_data(data)
 
@@ -269,14 +256,25 @@ class Assembly(FromToData, FromToJson):
 
         """
         return self.network.edges(data)
+    
 
-    def export_to_json_for_xr(self, path, is_built=False):
+    def add_element(self, element, key=None, attr_dict={}, **kwattr):
+        """Add an element to the assembly.
 
-        self.network.update_default_node_attributes({"is_built":False,"idx_v":None,"custom_attr_1":None,"custom_attr_2":None,"custom_attr_3":None})
+        Parameters
+        ----------
+        element : Element
+            The element to add.
+        attr_dict : dict, optional
+            A dictionary of element attributes. Default is ``None``.
 
-        for key, element in self.elements():
-            idx_v = self.network.node_attribute(key, "course")
-            self.network.node_attribute(key, "idx_v", idx_v)
-            self.network.node_attribute(key, "is_built", is_built)
-
-        self.to_json(path)
+        Returns
+        -------
+        hashable
+            The identifier of the element.
+        """
+        attr_dict.update(kwattr)
+        x, y, z = element.frame.point
+        key = self.network.add_node(key=key, attr_dict=attr_dict,
+                                    x=x, y=y, z=z, element=element)
+        return key
