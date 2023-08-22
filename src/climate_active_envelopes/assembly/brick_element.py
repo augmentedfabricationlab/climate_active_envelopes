@@ -67,6 +67,11 @@ class Element(object):
         self.trajectory = None
         self.path = []
 
+        self.length = 0.24
+        self.width = 0.12
+        self.height = 0.71
+        self.mortar = 0.01
+
     @classmethod
     def from_rhinomesh_geometry(cls, rhino_mesh, frame):
         """Class method for constructing a block from a Rhino mesh.
@@ -80,8 +85,6 @@ class Element(object):
         rhmesh = RhinoMesh.from_geometry(rhino_mesh)
         element._mesh = element._source = rhmesh.to_compas()
         return element
-
-
 
 
     @classmethod
@@ -218,18 +221,7 @@ class Element(object):
             self._mesh = Mesh.from_shape(self._source)
 
         return self._mesh
-
-    def get_brick_dimensions(self, key):
-        """key : The string of the attribute key."""
-        return self.network.attributes.get(key, None)
-
-    
-    def set_brick_dimensions(self, key, value):
-        """key : The string of the attribute key.
-            value: the value
-        """
-        self.network.attributes[key] = value
-        
+      
     @mesh.setter
     def mesh(self, mesh):
         self._source = self._mesh = mesh
@@ -254,6 +246,15 @@ class Element(object):
     @tool_frame.setter
     def tool_frame(self, frame):
         self._tool_frame = frame.copy()
+
+    @property
+    def length(self):
+        """length of the element"""
+        return self._length
+    
+    @length.setter
+    def length(self, length):
+        self._length = length
 
     @property
     def tool_frame_pose_quaternion(self):

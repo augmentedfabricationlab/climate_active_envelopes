@@ -84,7 +84,7 @@ class Assembly(FromToData, FromToJson):
         self.network.attributes['name'] = value
 
 
-    def get_attribute(self, key):
+    def get_attribute(self, key):        
         """key : The string of the attribute key."""
         return self.network.attributes.get(key, None)
 

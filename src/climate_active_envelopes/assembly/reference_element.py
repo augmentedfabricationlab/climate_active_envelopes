@@ -64,7 +64,7 @@ class ReferenceElement(object):
 
 
     @classmethod
-    def from_parameters(cls, frame, mesh, length, height, bond_type):
+    def from_parameters(cls, frame, mesh, length=3.0, height=3.0, bond_type="stretcher_header_bond"):
         """Construct a reference element from a set of parameters.
 
         Parameters
@@ -81,112 +81,15 @@ class ReferenceElement(object):
         """
         element = cls(frame)
 
-        element._mesh = mesh
-        element._length = length
-        element._height = height
-        element._bond_type = bond_type
+        element.mesh = mesh
+        element.length = length
+        element.height = height
+        element.bond_type = bond_type
 
         element.brick_assembly = None
 
         return element
-
-    @classmethod
-    def from_rhinomesh_geometry(cls, rhino_mesh, frame):
-        """Class method for constructing a block from a Rhino mesh.
-
-        Parameters
-        ----------
-
-        """
-        from compas_rhino.geometry import RhinoMesh
-        element = cls(frame)
-        rhmesh = RhinoMesh.from_geometry(rhino_mesh)
-        element._mesh = element._source = rhmesh.to_compas()
-        return element
     
-    
-    @classmethod
-    def create_ref_elem(cls, frame, length, height):
-        """Class method for constructing a mesh.
-
-        Parameters
-        frame, length, height
-
-        :class:`Mesh`
-            Mesh datastructure.
-        :class:`Frame`
-            Origin frame of the element.
-        ----------
-        """
-        element = cls(frame)
-        element.mesh = Mesh()
-        element._length = length
-        element._height = height
-
-        # Add front side vertices
-        for i in range(2):
-            x = i * length
-            for j in range(2):
-                z = j * height
-                element.mesh.add_vertex(x=x, y=0, z=z)
-        # Add front side face
-        for i in range(1):
-            for j in range(1):
-                a = i + j * 2
-                b = a + 1
-                c = b + 2
-                d = a + 2
-                element.mesh.add_face([a, b, c, d])
- 
-        element._source = element.mesh
-        return element
-
-
-    @classmethod
-    def create_ref_elem_from_mesh(cls, frame, wall_length, wall_height, brick_length, brick_width, brick_height, mortar):
-        """Class method for constructing a mesh.
-
-        Parameters
-        frame, length, height
-
-        :class:`Mesh`
-            Mesh datastructure.
-        :class:`Frame`
-            Origin frame of the element.
-        ----------
-        """
-
-        element = cls(frame)
-        element.mesh = Mesh()
-        element.length = wall_length
-        element.height = wall_height
-
-
-        step_in_z = brick_height + mortar/2
-        step_in_x = (brick_length+brick_width)/2 + mortar
-        vertices_per_row = int(wall_length / step_in_x)
-        row = int(wall_height / step_in_z)
-
-        #create vertices
-        for j in range(row): 
-            z = j * step_in_z
-            for i in range(vertices_per_row): 
-                y = 0
-                x = i * step_in_x
-                element.mesh.add_vertex(x = x, y = y, z = z) 
-
-        #create faces
-        for j in range(row -1):
-            for i in range(vertices_per_row - 1):
-                a = i + j * vertices_per_row
-                b = a + vertices_per_row
-                c = b + 1
-                d = a + 1
-                element.mesh.add_face([a, b, c, d])
-        element._source = element.mesh
-        return element
-
-
 
     @property
     def frame(self):
@@ -199,7 +102,7 @@ class ReferenceElement(object):
 
     @property
     def centroid(self):
-        return self._mesh.centroid()
+        return self.mesh.centroid()
 
     @property
     def face_frames(self):
@@ -210,7 +113,7 @@ class ReferenceElement(object):
         dict
             A dictionary mapping face identifiers to face frames.
         """
-        return {fkey: self.face_frame(fkey) for fkey in self._mesh.faces()}
+        return {fkey: self.face_frame(fkey) for fkey in self.mesh.faces()}
 
     def face_frame(self, fkey):
         """Compute the frame of a specific face.
@@ -225,9 +128,9 @@ class ReferenceElement(object):
         frame
             The frame of the specified face.
         """
-        xyz = self._mesh.face_coordinates(fkey)
-        o = self._mesh.face_center(fkey)
-        w = self._mesh.face_normal(fkey)
+        xyz = self.mesh.face_coordinates(fkey)
+        o = self.mesh.face_center(fkey)
+        w = self.mesh.face_normal(fkey)
         u = [xyz[1][i] - xyz[0][i] for i in range(3)]  # align with longest edge instead?
         v = cross_vectors(w, u)
         uvw = normalize_vector(u), normalize_vector(v), normalize_vector(w)
@@ -276,9 +179,9 @@ class ReferenceElement(object):
         if self._frame:
             d['_frame'] = self._frame.to_data()
 
-        if self._mesh:
+        if self.mesh:
             #d['_mesh'] = _serialize_to_data(self._mesh)
-            d['_mesh'] = self._mesh.to_data()
+            d['mesh'] = self.mesh.to_data()
 
         return d
 
@@ -288,9 +191,9 @@ class ReferenceElement(object):
         #TODO MUST BE EXPANDED WITH ATTRIBUTES
 
         self.frame = Frame.from_data(data['frame'])
-        if '_mesh' in data:
+        if 'mesh' in data:
             #self._mesh = _deserialize_from_data(data['_mesh'])
-            self._mesh = Mesh.from_data(data['_mesh'])
+            self.mesh = Mesh.from_data(data['mesh'])
 
     def get_attribute(self, key):
         """key : The string of the attribute key."""
@@ -379,10 +282,23 @@ class ReferenceElement(object):
         if self.mesh:
             elem.mesh = self.mesh.copy()
         return elem
-    
 
-    def generate_assembly(self):
+
+    def generate_brick_assembly(self):
         """Algorithm to generate the assembly model"""
 
-        #self.brick_assembly = Assembly()
-        print("generated brick assembly!")
+        if self.bond_type == "stretcher_header_bond":
+            self.generate_brick_assembly_stretcher_header_bond()
+        elif self.bond_type == "english_bond":
+            self.generate_brick_assembly_english_bond()
+
+
+    def generate_brick_assembly_stretcher_header_bond(self):
+
+        #algorithm: 
+        pass
+
+    def generate_brick_assembly_english_bond(self):
+    
+        #algorithm: 
+        pass
