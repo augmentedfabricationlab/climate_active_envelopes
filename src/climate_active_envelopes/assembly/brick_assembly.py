@@ -7,7 +7,7 @@ import os
 from copy import deepcopy
 from compas.datastructures import Network, network
 
-from .brick_element import Element
+from .brick import Element
 
 from .utilities import FromToData
 from .utilities import FromToJson

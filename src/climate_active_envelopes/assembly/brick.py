@@ -21,10 +21,10 @@ from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
 
 
-__all__ = ['Element']
+__all__ = ['Brick']
 
 
-class Element(object):
+class Brick(object):
     """Data structure representing a discrete element of an assembly.
 
     Attributes
@@ -55,8 +55,8 @@ class Element(object):
 
     """
 
-    def __init__(self, frame):
-        super(Element, self).__init__()
+    def __init__(self, frame, length=0.24, width=0.12, height=0.71, mortar=0.01):
+        super(Brick, self).__init__()
 
         self.frame = frame
         self._tool_frame = None
@@ -67,10 +67,10 @@ class Element(object):
         self.trajectory = None
         self.path = []
 
-        self.length = 0.24
-        self.width = 0.12
-        self.height = 0.71
-        self.mortar = 0.01
+        self.length = length
+        self.width = width
+        self.height = height
+        self.mortar = mortar
 
     @classmethod
     def from_rhinomesh_geometry(cls, rhino_mesh, frame):
