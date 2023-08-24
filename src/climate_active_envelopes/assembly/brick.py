@@ -145,7 +145,7 @@ class Brick(object):
         return cls.from_shape(box, box.frame)
 
     @classmethod
-    def from_dimensions(cls, length, width, height):
+    def from_dimensions(cls, frame, length, width, height):
         """Construct an element with a box primitive with the given dimensions.
 
         Parameters
@@ -161,8 +161,6 @@ class Brick(object):
         :class:`Element`
             New instance of element.
         """
-
-        frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])  # center of the box frame
         box = Box(frame, length, width, height)
         return cls.from_shape(box, frame)
 
@@ -483,9 +481,9 @@ class Brick(object):
         >>> element = Element.from_box(Box(Frame.worldXY(), 1, 1, 1))
         >>> element2 = element.transformed(Translation.from_vector([1, 0, 0]))
         """
-        elem = self.copy()
-        elem.transform(transformation)
-        return elem
+        element = self.copy()
+        element.transform(transformation)
+        return element
 
     def copy(self):
         """Returns a copy of this element.
@@ -494,7 +492,7 @@ class Brick(object):
         -------
         Element
         """
-        elem = Element(self.frame.copy())
+        elem = Brick(self.frame.copy())
         if self._tool_frame:
             elem.tool_frame = self.tool_frame.copy()
         if self._source:

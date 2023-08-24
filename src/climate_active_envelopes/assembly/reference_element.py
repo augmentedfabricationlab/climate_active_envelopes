@@ -3,13 +3,13 @@ from __future__ import division
 from __future__ import print_function
 
 import json
-
+import math as m
 #from compas_fab.robots import JointTrajectoryPoint
 
 from compas.datastructures import Mesh
 from compas.datastructures import mesh_transform
 
-from compas.geometry import Frame
+from compas.geometry import Frame, Translation, Rotation, Transformation
 from compas.geometry import Box
 from compas.geometry import centroid_points
 from compas.geometry import cross_vectors
@@ -58,10 +58,10 @@ class ReferenceElement(object):
 
     """
 
-    def __init__(self, origin_frame):
+    def __init__(self, frame):
         super(ReferenceElement, self).__init__()
 
-        self.frame = origin_frame #origin frame
+        self.frame = frame #origin frame
 
 
     @classmethod
@@ -283,120 +283,127 @@ class ReferenceElement(object):
             self.generate_brick_assembly_english_bond()
 
 
-    def generate_brick_assembly_stretcher_header_bond(self, brick_dimensions={"length": 0.2159, "width": 0.1016, "height": 0.05715, "joint_height": 0.0127}):
+    def generate_brick_assembly_stretcher_header_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}):
 
-        #algorithm: 
-        # 1. generate plane grid
+        # 1. generate frame grid for brick assembly
+
+        assembly = Assembly()
 
         brick_length = brick_dimensions["length"]
         brick_height = brick_dimensions["height"]
         brick_width = brick_dimensions["width"]
         mortar_joint_height = brick_dimensions["joint_height"]
 
-        length = self.length
-        height = self.height
+        frame = self.frame
 
-        courses = int(height / (brick_height + mortar_joint_height/2))
-        bricks_per_course = int(length / ((brick_length + brick_width)/2 + mortar_joint_height))
-        #total_length = (bricks_per_course - 1) * (bricks_per_course)
+        courses = int(self.height / (brick_height + mortar_joint_height/2))
+        bricks_per_course = int(self.length / ((brick_length + brick_width)/2 + mortar_joint_height))
 
-
-        courses = int(height / (brick_height + mortar_joint_height/2))
-        bricks_per_course = int(length / ((brick_length + brick_width)/2 + mortar_joint_height))
-
-        frame_grid = []
+        frames_grid = []
         for course in range(courses):
             z_val = course * (brick_height + mortar_joint_height)
+            course_is_odd = course%2 == 0
+            course_is_even = course%2 == 1
 
-            planes = []
+            frames = []
             for brick in range(bricks_per_course):
                 x_val = brick * ((brick_length + brick_width)/2 + mortar_joint_height)
+                translation_vector = frame.xaxis * x_val + frame.zaxis * z_val
+                T = Translation.from_vector(translation_vector)
+                f1 = frame.transformed(T)
+                brick_in_course_is_odd = brick%2 == 0
+                brick_in_course_is_even = brick%2 == 1
 
-                origin = plane_from_frame.Origin + (x_val + (brick_length - brick_width)/2 + mortar)*plane_from_frame.XAxis + (z_val + (brick_height + mortar)/2)*plane_from_frame.ZAxis
-                new_plane = rg.Plane(origin, plane_from_frame.XAxis, plane_from_frame.YAxis)
+                if course_is_odd:
+                    if brick_in_course_is_odd: 
+                        T = Translation.from_vector(f1.yaxis *+ (brick_length/4 + mortar_joint_height/4))
+                        R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f1.point)
+                        f1 = f1.transformed(T*R) #brick_full, alternating
 
-                planes.append(new_plane)
-            plane_grid.append(planes)
+                        my_brick_full = Brick.from_dimensions(f1, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick_full, attr_dict={"brick_type": "full", "fixed": True})
 
+                        f4 = f1.copy() 
+                        T = Translation.from_vector(f4.xaxis *+ (brick_length + mortar_joint_height))
+                        f4 = f4.transformed(T)
+                        frames.append(f4) #brick insulated
 
-        for i, row_planes in enumerate(plane_grid):
-            row = []
-            for j, plane in enumerate(row_planes):
-
-                z1 = plane
-                z1.Translate(z1.ZAxis*-height/2)
-
-
-                #odd layers
-                if i%2 == 0: 
-                    if j%2 == 0: 
-                        z1.Translate(z1.YAxis*+(length/4 + mortar/4))
-                        z1.Rotate(m.radians(90), z1.ZAxis)
-                        z4 = rg.Plane(z1)
-                        z4.Translate(z4.XAxis*+(length + mortar))
-                        row.append(z4)
-
-                    if j%2 == 1:
-                        z2 = rg.Plane(z1)
-                        z2.Rotate(m.radians(90), z2.ZAxis)
-                        z2.Translate(z2.YAxis*+(width/2 + mortar/2))
-                        z2.Translate(z2.XAxis*+((length/2+width/2) + mortar))
-                        row.append(z2)
-                        z3 = rg.Plane(z2)
-                        z2.Translate(z2.YAxis*-(width + mortar))
-                        row.append(z3)
-                        z5 = rg.Plane(z1)
-                        z5.Translate(z5.YAxis*+((length+ width) + mortar*2))
-                        row.append(z5)
+                    if brick_in_course_is_even:
+                        f2 = f1.copy()
+                        R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f2.point)
+                        T1 = Translation.from_vector(f2.yaxis * (brick_width/2 + mortar_joint_height/2))
+                        T2 = Translation.from_vector(f2.xaxis * ((brick_length/2+brick_width/2) + mortar_joint_height))
+                        f2 = f2.transformed(R*T1*T2)
+                        frames.append(f2) #brick insulated
 
 
-                #even layers
-                if i%2 == 1:
-                    if j%2 == 1:
-                        z1.Translate(z1.YAxis*+(length/4 + mortar/4))
-                        z1.Rotate(m.radians(90), z1.ZAxis)
-                        z4 = rg.Plane(z1)
-                        z4.Translate(z4.XAxis*+(length + mortar))
-                        row.append(z4)
-
-                    if j%2 == 0:
-                        z2 = rg.Plane(z1)
-                        z2.Rotate(m.radians(90), z2.ZAxis)
-                        z2.Translate(z2.YAxis*+(width/2 + mortar/2))
-                        z2.Translate(z2.XAxis*+((length/2+width/2) + mortar))
-                        row.append(z2)
-                        z3 = rg.Plane(z2)
-                        z2.Translate(z2.YAxis*-(width + mortar))
-                        row.append(z3)
-                        z5 = rg.Plane(z1)
-                        z5.Translate(z5.YAxis*+((length+ width) + mortar*2))
-                        row.append(z5)
-
-                row.append(z1)
-            grid.append(row)
-                
 
 
-        # 2. generate brick assembly
-        assembly = Assembly()
+                        f3 = f2.copy()
+                        T = Translation.from_vector(f3.yaxis*- (brick_width+mortar_joint_height))
+                        f3 = f3.transformed(T)
+                        frames.append(f3) #brick insulated
+
+                        f5 = f1.copy()
+                        T = Translation.from_vector(f5.yaxis*+((brick_length+ brick_width) + mortar_joint_height*2))
+                        f5 = f5.transformed(T)
+                        frames.append(f5) #brick insulated
+
+                if course_is_even:
+                    if brick_in_course_is_even:
+                        T = Translation.from_vector(f1.yaxis *+ (brick_length/4 + mortar_joint_height/4) )
+                        R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f1.point)
+                        f1 = f1.transformed(T*R) #brick_full, alternating
+
+                        f4 = f1.copy()
+                        T = Translation.from_vector(f4.xaxis*+(brick_length + mortar_joint_height))
+                        f4 = f4.transformed(T)
+                        frames.append(f4) #brick insulated
+
+                    if brick_in_course_is_odd: 
+                        f2 = f1.copy()
+                        R = Rotation.from_axis_and_angle(f2.zaxis, m.radians(90), point=f2.point)
+                        T1 = Translation.from_vector(f2.yaxis *+ (brick_width/2 + mortar_joint_height/2))
+                        T2 = Translation.from_vector(f2.xaxis *+ ((brick_length/2+brick_width/2) + mortar_joint_height))
+                        f2 = f2.transformed(R*T1*T2)
+                        frames.append(f2) #brick insulated
+
+                        f3 = f2.copy()
+                        T = Translation.from_vector(f3.yaxis*- (brick_width+mortar_joint_height))
+                        f3 = f3.transformed(T)
+                        frames.append(f3) #brick insulated
+
+                        f5 = f1.copy()
+                        T = Translation.from_vector(f5.yaxis*+((brick_length+ brick_width) + mortar_joint_height*2))
+                        f5 = f5.transformed(T)
+                        frames.append(f5) #brick insulated
+
+                frames.append(f1) 
+            frames_grid.append(frames)
         
-        for i, row in enumerate(frame_grid): # number of layers and all planes
-            for j, frame in enumerate(row): #j = planes / layer
-
-                T = Transformation.from_frame_to_frame(Frame.worldXY(), frame)
-
-                if i%2 == 1 and j%2 == 1 and j%3 != 1:
-                    c = brick_full.transformed(T)
-                    my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"], brick_dimensions["joint_height"])
-                    assembly.add_element(my_brick, attr_dict={"brick_type": "full"})
-                elif i%2 == 0 and j%2 == 1 and j%3 != 0:
-                    c = brick_full.transformed(T)
-                    assembly.add_element(c)
-                else:
-                    c = brick_insulated.transformed(T)
-                    assembly.add_element(c)
-
         self.brick_assembly = assembly
+
+
+        # # 2. generate brick assembly
+        # assembly = Assembly()
+        
+        # for i, row in enumerate(frame_grid): # number of layers and all planes
+        #     for j, frame in enumerate(row): #j = planes / layer
+
+        #         T = Transformation.from_frame_to_frame(Frame.worldXY(), frame)
+
+        #         if i%2 == 1 and j%2 == 1 and j%3 != 1:
+        #             c = brick_full.transformed(T)
+        #             my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"], brick_dimensions["joint_height"])
+        #             assembly.add_element(my_brick, attr_dict={"brick_type": "full"})
+        #         elif i%2 == 0 and j%2 == 1 and j%3 != 0:
+        #             c = brick_full.transformed(T)
+        #             assembly.add_element(c)
+        #         else:
+        #             c = brick_insulated.transformed(T)
+        #             assembly.add_element(c)
+
+        # self.brick_assembly = assembly
 
     def generate_brick_assembly_english_bond(self):
     
