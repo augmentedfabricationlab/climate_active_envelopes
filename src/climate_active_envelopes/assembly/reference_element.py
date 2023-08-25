@@ -10,13 +10,12 @@ from compas.datastructures import Mesh
 from compas.datastructures import mesh_transform
 
 from compas.geometry import Frame, Translation, Rotation, Transformation
-from compas.geometry import Box
 from compas.geometry import centroid_points
 from compas.geometry import cross_vectors
 from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
-
+from compas_rhino.geometry import RhinoMesh
 from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
 
@@ -273,39 +272,35 @@ class ReferenceElement(object):
             elem.mesh = self.mesh.copy()
         return elem
 
-
-    def generate_brick_assembly(self):
+    def generate_brick_assembly(self, insulated_brick_mesh=None, brick_frame = None):
         """Algorithm to generate the assembly model"""
 
         if self.bond_type == "stretcher_header_bond":
-            self.generate_brick_assembly_stretcher_header_bond()
+            self.generate_brick_assembly_stretcher_header_bond(insulated_brick_mesh=insulated_brick_mesh, brick_frame = brick_frame)
         elif self.bond_type == "english_bond":
             self.generate_brick_assembly_english_bond()
 
 
-    def generate_brick_assembly_stretcher_header_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}):
-
-        # 1. generate frame grid for brick assembly
+    def generate_brick_assembly_stretcher_header_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, insulated_brick_mesh=None, brick_frame = None):
+        """ Algorithm to generate the brick_assembly model for stretcher header bond brickwork."""
 
         assembly = Assembly()
+
+        frame = self.frame
 
         brick_length = brick_dimensions["length"]
         brick_height = brick_dimensions["height"]
         brick_width = brick_dimensions["width"]
         mortar_joint_height = brick_dimensions["joint_height"]
 
-        frame = self.frame
-
         courses = int(self.height / (brick_height + mortar_joint_height/2))
         bricks_per_course = int(self.length / ((brick_length + brick_width)/2 + mortar_joint_height))
 
-        frames_grid = []
         for course in range(courses):
             z_val = course * (brick_height + mortar_joint_height)
             course_is_odd = course%2 == 0
             course_is_even = course%2 == 1
 
-            frames = []
             for brick in range(bricks_per_course):
                 x_val = brick * ((brick_length + brick_width)/2 + mortar_joint_height)
                 translation_vector = frame.xaxis * x_val + frame.zaxis * z_val
@@ -319,91 +314,85 @@ class ReferenceElement(object):
                         T = Translation.from_vector(f1.yaxis *+ (brick_length/4 + mortar_joint_height/4))
                         R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f1.point)
                         f1 = f1.transformed(T*R) #brick_full, alternating
+                        my_brick = Brick.from_dimensions(f1, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "full", "fixed": False})
 
-                        my_brick_full = Brick.from_dimensions(f1, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
-                        assembly.add_element(my_brick_full, attr_dict={"brick_type": "full", "fixed": True})
-
-                        f4 = f1.copy() 
+                        f4 = f1.copy() #brick insulated
                         T = Translation.from_vector(f4.xaxis *+ (brick_length + mortar_joint_height))
                         f4 = f4.transformed(T)
-                        frames.append(f4) #brick insulated
+                        my_insulated_brick = Brick.from_mesh(insulated_brick_mesh, f4)
+                        #my_brick = Brick.from_dimensions(f4, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_insulated_brick, attr_dict={"brick_type": "insulated", "fixed": True})
+
 
                     if brick_in_course_is_even:
-                        f2 = f1.copy()
+                        f0 = f1 #brick_full, fixed
+                        my_brick = Brick.from_dimensions(f0, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "full", "fixed": True})
+
+                        f2 = f1.copy() #brick insulated
                         R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f2.point)
                         T1 = Translation.from_vector(f2.yaxis * (brick_width/2 + mortar_joint_height/2))
                         T2 = Translation.from_vector(f2.xaxis * ((brick_length/2+brick_width/2) + mortar_joint_height))
                         f2 = f2.transformed(R*T1*T2)
-                        frames.append(f2) #brick insulated
+                        my_brick = Brick.from_dimensions(f2, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
 
-
-
-
-                        f3 = f2.copy()
+                        f3 = f2.copy() #brick insulated
                         T = Translation.from_vector(f3.yaxis*- (brick_width+mortar_joint_height))
                         f3 = f3.transformed(T)
-                        frames.append(f3) #brick insulated
+                        my_brick = Brick.from_dimensions(f3, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
 
-                        f5 = f1.copy()
+                        f5 = f1.copy() #brick insulated
                         T = Translation.from_vector(f5.yaxis*+((brick_length+ brick_width) + mortar_joint_height*2))
                         f5 = f5.transformed(T)
-                        frames.append(f5) #brick insulated
+                        my_brick = Brick.from_dimensions(f5, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
+
 
                 if course_is_even:
                     if brick_in_course_is_even:
                         T = Translation.from_vector(f1.yaxis *+ (brick_length/4 + mortar_joint_height/4) )
                         R = Rotation.from_axis_and_angle(f1.zaxis, m.radians(90), point=f1.point)
                         f1 = f1.transformed(T*R) #brick_full, alternating
+                        my_brick = Brick.from_dimensions(f1, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": False})
 
-                        f4 = f1.copy()
+                        f4 = f1.copy() #brick insulated
                         T = Translation.from_vector(f4.xaxis*+(brick_length + mortar_joint_height))
                         f4 = f4.transformed(T)
-                        frames.append(f4) #brick insulated
+                        my_brick = Brick.from_dimensions(f4, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})                        
 
                     if brick_in_course_is_odd: 
-                        f2 = f1.copy()
+                        f0 = f1 #brick_full
+                        my_brick = Brick.from_dimensions(f0, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "full", "fixed": True})
+
+                        f2 = f1.copy() #brick insulated
                         R = Rotation.from_axis_and_angle(f2.zaxis, m.radians(90), point=f2.point)
                         T1 = Translation.from_vector(f2.yaxis *+ (brick_width/2 + mortar_joint_height/2))
                         T2 = Translation.from_vector(f2.xaxis *+ ((brick_length/2+brick_width/2) + mortar_joint_height))
                         f2 = f2.transformed(R*T1*T2)
-                        frames.append(f2) #brick insulated
 
-                        f3 = f2.copy()
+                        my_brick = Brick.from_dimensions(f2, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
+
+                        f3 = f2.copy() #brick insulated
                         T = Translation.from_vector(f3.yaxis*- (brick_width+mortar_joint_height))
                         f3 = f3.transformed(T)
-                        frames.append(f3) #brick insulated
+                        my_brick = Brick.from_dimensions(f3, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
 
-                        f5 = f1.copy()
+                        f5 = f1.copy() #brick insulated
                         T = Translation.from_vector(f5.yaxis*+((brick_length+ brick_width) + mortar_joint_height*2))
                         f5 = f5.transformed(T)
-                        frames.append(f5) #brick insulated
-
-                frames.append(f1) 
-            frames_grid.append(frames)
+                        my_brick = Brick.from_dimensions(f5, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+                        assembly.add_element(my_brick, attr_dict={"brick_type": "insulated", "fixed": True})
         
         self.brick_assembly = assembly
 
-
-        # # 2. generate brick assembly
-        # assembly = Assembly()
-        
-        # for i, row in enumerate(frame_grid): # number of layers and all planes
-        #     for j, frame in enumerate(row): #j = planes / layer
-
-        #         T = Transformation.from_frame_to_frame(Frame.worldXY(), frame)
-
-        #         if i%2 == 1 and j%2 == 1 and j%3 != 1:
-        #             c = brick_full.transformed(T)
-        #             my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"], brick_dimensions["joint_height"])
-        #             assembly.add_element(my_brick, attr_dict={"brick_type": "full"})
-        #         elif i%2 == 0 and j%2 == 1 and j%3 != 0:
-        #             c = brick_full.transformed(T)
-        #             assembly.add_element(c)
-        #         else:
-        #             c = brick_insulated.transformed(T)
-        #             assembly.add_element(c)
-
-        # self.brick_assembly = assembly
 
     def generate_brick_assembly_english_bond(self):
     

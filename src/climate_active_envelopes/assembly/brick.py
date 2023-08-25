@@ -20,7 +20,6 @@ from compas.geometry import volume_polyhedron
 from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
 
-
 __all__ = ['Brick']
 
 
@@ -71,21 +70,6 @@ class Brick(object):
         self.width = width
         self.height = height
         self.mortar = mortar
-
-    @classmethod
-    def from_rhinomesh_geometry(cls, rhino_mesh, frame):
-        """Class method for constructing a block from a Rhino mesh.
-
-        Parameters
-        ----------
-
-        """
-        from compas_rhino.geometry import RhinoMesh
-        element = cls(frame)
-        rhmesh = RhinoMesh.from_geometry(rhino_mesh)
-        element._mesh = element._source = rhmesh.to_compas()
-        return element
-
 
     @classmethod
     def from_mesh(cls, mesh, frame):
