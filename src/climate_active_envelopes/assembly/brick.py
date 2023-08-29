@@ -11,11 +11,13 @@ from compas.datastructures import mesh_transform
 
 from compas.geometry import Frame
 from compas.geometry import Box
+from compas.geometry import Transformation
 from compas.geometry import centroid_points
 from compas.geometry import cross_vectors
 from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
+
 
 from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
@@ -87,9 +89,36 @@ class Brick(object):
         :class:`Element`
             New instance of element.
         """
+
         element = cls(frame)
         element._source = element._mesh = mesh
         return element
+
+    @classmethod
+    def from_mesh_and_frame(cls, mesh, t_frame):
+        """Construct an element from a mesh and frame.
+
+        Parameters
+        ----------
+        mesh : :class:`Mesh`
+            Mesh datastructure.
+        frame : :class:`Frame`
+            Origin frame of the element.
+        new_frame : :class:`Frame`
+            New frame of the element.
+
+        Returns
+        -------
+        :class:`Element`
+            New instance of element.
+        """
+        
+        element = cls(Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0]))
+        T = Transformation.from_frame_to_frame(element.frame, t_frame)
+        mesh_transformed = mesh.transformed(T)
+        element._source = element._mesh = mesh_transformed
+        return element
+    
 
     @classmethod
     def from_shape(cls, shape, frame):
