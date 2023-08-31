@@ -15,7 +15,6 @@ from compas.geometry import cross_vectors
 from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
-from compas.utilities import normalize_values
 from compas_rhino.geometry import RhinoMesh
 from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
@@ -282,16 +281,16 @@ class ReferenceElement(object):
             elem.mesh = self.mesh.copy()
         return elem
 
-    def generate_brick_assembly(self, insulated_brick_mesh=None, shading_points=None, create_self_shading=True):
+    def generate_brick_assembly(self, insulated_brick_mesh=None, shading_values=None, create_self_shading=True):
         """Algorithm to generate the assembly model"""
 
         if self.bond_type == "flemish_bond":
-            self.generate_brick_assembly_flemish_bond(insulated_brick_mesh=insulated_brick_mesh, shading_points=shading_points, create_self_shading=create_self_shading)
+            self.generate_brick_assembly_flemish_bond(insulated_brick_mesh=insulated_brick_mesh, shading_values=shading_values, create_self_shading=create_self_shading)
         elif self.bond_type == "english_bond":
             self.generate_brick_assembly_english_bond()
 
 
-    def generate_brick_assembly_flemish_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, insulated_brick_mesh=None, shading_points=None, create_self_shading=True):
+    def generate_brick_assembly_flemish_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, insulated_brick_mesh=None, shading_values=None, create_self_shading=True):
         """ Algorithm to generate the brick_assembly model for the flemish bond brickwork."""
 
         assembly = Assembly()
@@ -311,25 +310,28 @@ class ReferenceElement(object):
         def create_brick_and_add_to_assembly(brick_type, fixed = True, frame = frame):
             """Function to create a brick and add it to the assembly"""
 
-            if brick_type == "full" and fixed == True:
+            if brick_type == "full":
                 my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
 
-            elif create_self_shading == True and brick_type == "full" and fixed == False:
-                for shading_point in shading_points:
-                    
-                    distance = shading_point.distance_to_point(frame.point)
-                    T = Translation.from_vector(frame.xaxis *- m.radians(distance))
-                    frame = frame.transformed(T)
-                my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+
+                if create_self_shading == True:
+                    if brick_type == "full" and fixed == False:
+                        for shading_value in shading_values:
+                            #distance = shading_point.distance_to_point(frame.point)
+                            T = Translation.from_vector(frame.yaxis *- m.radians(shading_value))
+                            frame = frame.transformed(T)
+                        my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
+
+
+                    # for i, (element, data) in enumerate(elements):
+                    #     translation_val = color_vals[i] *1.15
+
 
             elif brick_type == "insulated":
-                my_brick = Brick.from_mesh_and_frame(insulated_brick_mesh, frame) 
-
+                my_brick = Brick.from_mesh_and_frame(insulated_brick_mesh, frame)          
             else:
                 return
             assembly.add_element(my_brick, attr_dict={"brick_type": brick_type, "fixed": fixed})
-
-
 
 
     #     for node in assembly.elements(data=True):
@@ -343,6 +345,8 @@ class ReferenceElement(object):
     #                     distance = shading_point.distance_to_point(frame.point)
     #                     T = Translation.from_vector(frame.yaxis * distance)
     #                     frame = frame.transformed(T)
+
+    #         return frame
 
 
 
