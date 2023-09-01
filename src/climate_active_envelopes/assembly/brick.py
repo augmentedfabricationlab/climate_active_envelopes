@@ -116,7 +116,11 @@ class Brick(object):
         element = cls(Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0]))
         T = Transformation.from_frame_to_frame(element.frame, t_frame)
         mesh_transformed = mesh.transformed(T)
+        frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
+        element.frame = frame
+
         element._source = element._mesh = mesh_transformed
+
         return element
     
 
