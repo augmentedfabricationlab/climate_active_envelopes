@@ -311,7 +311,7 @@ class ReferenceElement(object):
 
             if brick_type == "full":
                 my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
-            
+                
                 if create_self_shading == True:                   
                     if brick_type == "full" and fixed == False:
                         if count[0] < len(color_values):
@@ -322,9 +322,12 @@ class ReferenceElement(object):
                             print("frame:", frame)
                             my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])   
 
-            elif brick_type == "corner_brick": 
-                my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
+            #elif create_corner_bricks == True:
+                #my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
 
+            elif brick_type == "corner": 
+                my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
+                    
             elif brick_type == "insulated":
                 my_brick = Brick.from_mesh_and_frame(insulated_brick_mesh, frame)          
             else:
@@ -343,23 +346,36 @@ class ReferenceElement(object):
                 brick_in_course_is_odd = brick%2 == 0
                 brick_in_course_is_even = brick%2 == 1                
 
+                #T1 = Translation.from_vector(current_frame.yaxis *- (brick_width/2))
+                T2 = Translation.from_vector(current_frame.xaxis *+ (brick_width - mortar_joint_height*2 + mortar_joint_height/2))
+                current_frame = current_frame.transformed(T2)  
+
                 if course_is_odd:
-                    if brick_in_course_is_odd: 
+                    if brick_in_course_is_odd:
                         T = Translation.from_vector(current_frame.yaxis *+ (brick_length/4 + mortar_joint_height/4))
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point)
-                        current_frame = current_frame.transformed(T*R) #brick_full, not_fixed    
-                        if brick_in_course_is_odd == 1: #first brick in course'
-                            create_brick_and_add_to_assembly("corner_brick", fixed=True , frame = current_frame)
-                        elif brick_in_course_is_odd !=1: #all other bricks in course
-                            create_brick_and_add_to_assembly("full", fixed=False ,  frame = current_frame)
+                        current_frame = current_frame.transformed(T*R) #brick_full, not_fixed  
+                        create_brick_and_add_to_assembly("full", fixed=False , frame = current_frame)
 
-                        
+                        if brick == 0: #first brick in course
+                            first_frame = current_frame.copy()
+                            T = Translation.from_vector(first_frame.yaxis *+ (brick_width/2 + brick_width/4 + mortar_joint_height))
+                            first_frame = first_frame.transformed(T)
+                            create_brick_and_add_to_assembly("corner", fixed=False , frame = first_frame)
+
+                        # elif brick == bricks_per_course-1:
+                        #     last_frame = current_frame.copy()
+                        #     T = Translation.from_vector(last_frame.yaxis *- (brick_width/2 + brick_width/4 + mortar_joint_height))
+                        #     last_frame = last_frame.transformed(T)
+                        #     create_brick_and_add_to_assembly("corner", fixed=False , frame = last_frame)
+
                         T1 = Translation.from_vector(current_frame.xaxis *+ (brick_length + mortar_joint_height))
                         T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
                         current_frame = current_frame.transformed(T1*T2)
                         create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
 
-                    else:
+
+                    else: #brick_in_course_is_even
                         create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame)
 
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point)
@@ -370,20 +386,31 @@ class ReferenceElement(object):
 
                         T = Translation.from_vector(current_frame.yaxis *- (brick_width+mortar_joint_height))
                         current_frame = current_frame.transformed(T)
-                        create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
+                        if brick == bricks_per_course-1:
+                            create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame)
+                        else: 
+                            create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
 
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point)
                         T1 = Translation.from_vector(current_frame.xaxis *+ (brick_width/2 + mortar_joint_height))
                         T2 = Translation.from_vector(current_frame.yaxis *- ((brick_length/2 + brick_width/2) + mortar_joint_height/2 + mortar_joint_height))
                         current_frame = current_frame.transformed(R*T1*T2)
-                        create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
+                        if brick == bricks_per_course-1:
+                            create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame)
+                        else: 
+                            create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
 
-                else:
+                else: #course_is_even
                     if brick_in_course_is_even:
                         T = Translation.from_vector(current_frame.yaxis *+ (brick_length/4 + mortar_joint_height/4))
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point)
                         current_frame = current_frame.transformed(T*R) #brick_full, not_fixed
                         create_brick_and_add_to_assembly("full", fixed=False , frame = current_frame)
+                        last_frame = current_frame.copy()
+                        if brick == bricks_per_course-1: #last brick in course
+                            T = Translation.from_vector(last_frame.yaxis *- (brick_width/2 + brick_width/4 + mortar_joint_height))
+                            last_frame = last_frame.transformed(T)
+                            create_brick_and_add_to_assembly("corner", fixed=False , frame = last_frame)                         
 
                         T1 = Translation.from_vector(current_frame.xaxis *+ (brick_length + mortar_joint_height))
                         T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
@@ -391,13 +418,14 @@ class ReferenceElement(object):
                         create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)                      
 
                     else:                                             
-                        create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame)
+                        create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame) #brick_full, fixed
 
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point)
                         T1 = Translation.from_vector(current_frame.yaxis *+ (brick_width/2 + mortar_joint_height/4))
                         T2 = Translation.from_vector(current_frame.xaxis *+ ((brick_length/2+brick_width/2) + mortar_joint_height))
                         current_frame = current_frame.transformed(R*T1*T2)
-                        create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
+                        if brick > 0: #not first brick in course
+                            create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
 
                         T = Translation.from_vector(current_frame.yaxis *- (brick_width+mortar_joint_height))
                         current_frame = current_frame.transformed(T)
@@ -407,7 +435,9 @@ class ReferenceElement(object):
                         T1 = Translation.from_vector(current_frame.xaxis *+ (brick_width/2 + mortar_joint_height))
                         T2 = Translation.from_vector(current_frame.yaxis *- ((brick_length/2 + brick_width/2) + mortar_joint_height/2 + mortar_joint_height))
                         current_frame = current_frame.transformed(R*T1*T2)
-                        create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
+                        if brick > 0: #not first brick in course
+                            create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
+
      
         self.brick_assembly = assembly
 
