@@ -36,7 +36,7 @@ Execute the commands below in Anaconda Prompt:
     
 #### Verify Installation
 
-    (afab) pip show compas_fab
+    (cae) pip show compas_fab
     
     Name: compas-fab
     Version: 0.XX.X
