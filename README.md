@@ -10,13 +10,8 @@
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
 
-## Dependencies
-#### [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
-    (cae) conda install compas_rrc
-    (cae) python -m compas_rhino.install -v 7.0
   
 #### [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) 
-
 
 ## Getting Started
 
@@ -36,12 +31,22 @@ Execute the commands below in Anaconda Prompt:
     
 #### Verify Installation
 
-    (cae) pip show compas_fab
+    (cae) pip show compas
     
-    Name: compas-fab
+    Name: compas
     Version: 0.XX.X
     Summary: Robotic fabrication package for the COMPAS Framework
     ....
+
+## Dependencies
+#### [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
+
+    (cae) conda install compas_rrc
+    
+#### Install on Rhino
+
+    (cae) python -m compas_rhino.install -v 7.0
+
 ### 2. Cloning and installing the repository
 
 #### Repository Cloning
