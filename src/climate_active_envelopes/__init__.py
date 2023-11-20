@@ -22,9 +22,9 @@ Describe typical classes found in project
 
 from .sample_module import SampleClassName
 from .assembly import Assembly, ReferenceElement, ReferenceModel, Brick
+from .tasks import pick_place_print
 #from .assembly import brick_assembly, brick_element, reference_element, reference_model, utilities
 from .export import Exporter
 
 
-#__all__ = ['SampleClassName', 'wall_assembly', 'brick_assembly', 'CAEElement', 'utilities', 'Exporter']
 __all__ = []

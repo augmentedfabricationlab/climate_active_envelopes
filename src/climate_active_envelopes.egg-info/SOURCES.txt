@@ -8,13 +8,6 @@ pytest.ini
 requirements-dev.txt
 setup.cfg
 setup.py
-src/brick_assembly/__init__.py
-src/brick_assembly/__version__.py
-src/brick_assembly/sample_module.py
-src/brick_assembly/assembly/__init__.py
-src/brick_assembly/assembly/assembly.py
-src/brick_assembly/assembly/element.py
-src/brick_assembly/assembly/utilities.py
 src/climate_active_envelopes/__init__.py
 src/climate_active_envelopes/__version__.py
 src/climate_active_envelopes/sample_module.py
@@ -25,7 +18,11 @@ src/climate_active_envelopes.egg-info/not-zip-safe
 src/climate_active_envelopes.egg-info/top_level.txt
 src/climate_active_envelopes/assembly/__init__.py
 src/climate_active_envelopes/assembly/artist.py
-src/climate_active_envelopes/assembly/assembly.py
-src/climate_active_envelopes/assembly/element.py
+src/climate_active_envelopes/assembly/brick.py
+src/climate_active_envelopes/assembly/brick_assembly.py
+src/climate_active_envelopes/assembly/reference_element.py
+src/climate_active_envelopes/assembly/reference_model.py
+src/climate_active_envelopes/assembly/sequencing.py
+src/climate_active_envelopes/assembly/utilities.py
 src/climate_active_envelopes/export/__init__.py
 src/climate_active_envelopes/export/exporter.py
