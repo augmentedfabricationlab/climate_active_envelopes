@@ -1,1 +1,1 @@
-from .pick_place_print import StartConfigurationTask, SetToolTask, PickBrickTask
+from .pick_place_print import StartConfigurationTask, SetToolTask, PickBrickTask, PlaceBrickTask, SafePositionTask

@@ -1,12 +1,8 @@
 from fabrication_manager.task import Task
 from compas.geometry import Frame, Translation, Vector
 from compas_fab.robots import Configuration, Robot
-# from fabtory_fabrication_control.commands.motion import move_to_joints, move_to_robtarget
-# from fabtory_fabrication_control.commands.communication import open, close
-
 import fabtory_fabrication_control as ffc
 import compas_rrc as rrc
-
 
 __all__ = [
     "StartConfigurationTask"
