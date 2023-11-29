@@ -2,9 +2,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-from compas.geometry import Frame
-from compas_ghpython.artists import FrameArtist
-
 import json
 import compas
 
@@ -18,12 +15,12 @@ __all__ = [
     'FromToData',
     'FromToJson',
     'FromToPickle',
-    "plane_to_frame",
-    "frame_to_plane"]
+]
+
 
 class FromToData(object):
 
-    __module__ = 'climate_active_envelopes.brick_assembly.utilities'
+    __module__ = 'assembly_information_model.assembly.utilities'
 
     @classmethod
     def from_data(cls, data):
@@ -170,19 +167,6 @@ def _deserialize_from_data(data):
         cls = getattr(__import__(module, fromlist=[attr]), attr)
 
     return cls.from_data(data['data'])
-
-
-
-
-def plane_to_frame(plane):
-    frame = Frame(plane.Origin, plane.XAxis, plane.YAxis)
-    return frame
-
-
-def frame_to_plane(frame):
-    plane = FrameArtist(frame).draw()
-    return plane
-
 
 
 # ==============================================================================

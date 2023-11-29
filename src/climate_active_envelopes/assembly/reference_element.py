@@ -274,102 +274,82 @@ class ReferenceElement(object):
             elem.mesh = self.mesh.copy()
         return elem
 
-    def generate_brick_assembly(self, insulated_brick_mesh=None, color_values=None, create_self_shading=True, create_corner_bricks=True):
+    def generate_brick_assembly(self, insulated_brick_mesh=None, 
+                                color_values=None, 
+                                create_self_shading=True, 
+                                #create_corner_bricks=True
+                                ):
         """Algorithm to generate the assembly model"""
 
         if self.bond_type == "flemish_bond":
-            self.generate_brick_assembly_flemish_bond(insulated_brick_mesh=insulated_brick_mesh, color_values=color_values, create_self_shading=create_self_shading, create_corner_bricks=create_corner_bricks)
+            self.generate_brick_assembly_flemish_bond(insulated_brick_mesh=insulated_brick_mesh, 
+                                                      color_values=color_values, 
+                                                      create_self_shading=create_self_shading, 
+                                                      #create_corner_bricks=create_corner_bricks 
+                                                      )
         elif self.bond_type == "english_bond":
             self.generate_brick_assembly_english_bond()
 
+    def create_self_shading(self, frame, color_values): 
+        """Function to create self shading effect"""
+        count = [0]   
+
+        if count[0] < len(color_values):
+            translation_color_values = color_values[count[0]]
+            count[0] += 1  # Increment counter
+            T = Translation.from_vector(frame.xaxis * -(translation_color_values)) 
+            frame = frame.transformed(T) 
+            print("frame:", frame)
+        return frame  # Return frame with self-shading effect 
     
-    # def create_brick_and_add_to_assembly(self,  brick_type, fixed = True, color_values = None, create_self_shading = True, brick_dimensions = None):
-    #     """Function to create a brick and add it to the assembly"""
-
-    #     frame = self.frame
-
-    #     if brick_type == "full":
-    #         my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
-            
-    #         if create_self_shading == True:                   
-    #             if brick_type == "full" and fixed == False:
-    #                 if count[0] < len(color_values):
-    #                     translation_color_values = color_values[count[0]]
-    #                     count[0] += 1
-    #                     T = Translation.from_vector(frame.xaxis *-(translation_color_values))
-    #                     frame = frame.transformed(T)
-    #                     print("frame:", frame)
-    #                     my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])   
-
-    #     elif brick_type == "corner": 
-    #         my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
-                
-    #     elif brick_type == "insulated":
-    #         my_brick = Brick.from_mesh_and_frame(insulated_brick_mesh, frame)          
-    #     else:
-    #         return 
-    #     self.brick_assembly.add_element(my_brick, attr_dict={"brick_type": brick_type, "fixed": fixed})
-
-    # def create_self_shading(self, color_values = None):
-    #     """Algorithm to create self shading properties of the brick assembly"""
-
-    #     count = [0]
-    #     for key, element, node in self.brick_assembly.elements(data = True):
-                
-    #         if node["brick_type"] == "full" and node["fixed"] == False:
-    #             if count[0] < len(color_values):
-    #                 translation_color_values = color_values[count[0]]
-    #                 count[0] += 1
-    #                 T = Translation.from_vector(element.frame.xaxis *-(translation_color_values))
-    #                 element.frame.transformed(T)
-    #                 print("frame:", element.frame)
-    #                 #my_brick = Brick.from_dimensions(element.frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
-                    
-    def generate_brick_assembly_flemish_bond(self, brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, insulated_brick_mesh=None, create_corner_bricks=True, color_values=None, create_self_shading=True):
+    
+        
+    def generate_brick_assembly_flemish_bond(self, 
+                                             brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, 
+                                             insulated_brick_mesh=None, 
+                                             color_values=None, 
+                                             create_self_shading=True, 
+                                             create_brick_and_add_to_assembly=None
+                                             ):
         """ Algorithm to generate the brick_assembly model for the flemish bond brickwork."""
 
         assembly = Assembly()
 
-        frame = self.frame
-
-        brick_length = brick_dimensions["length"]
+        frame = self.frame #origin frame
+        brick_length = brick_dimensions["length"] 
         brick_height = brick_dimensions["height"]
         brick_width = brick_dimensions["width"]
         mortar_joint_height = brick_dimensions["joint_height"]
+        courses = int(self.height / (brick_height + mortar_joint_height/2)) #number of courses
+        bricks_per_course = int(self.length / ((brick_length + brick_width)/2 + mortar_joint_height)) #number of bricks per course     
 
-        courses = int(self.height / (brick_height + mortar_joint_height/2))
-        bricks_per_course = int(self.length / ((brick_length + brick_width)/2 + mortar_joint_height))              
+        # def create_self_shading(frame, color_values): 
+        #     """Function to create self shading effect"""
+        #     count=[0]   
 
-        count = [0]
-        def create_brick_and_add_to_assembly(brick_type, fixed = True, frame = frame):
+        #     if count[0] < len(color_values):
+        #         translation_color_values = color_values[count[0]]
+        #         count[0] += 1 #increment counter
+        #         T = Translation.from_vector(frame.xaxis *-(translation_color_values)) 
+        #         frame = frame.transformed(T) 
+        #         print("frame:", frame)
+        #     return frame #return frame with self shading effect        
+
+        def create_brick_and_add_to_assembly(brick_type, fixed = True, frame = frame, self_shading = True): 
             """Function to create a brick and add it to the assembly"""
 
             if brick_type == "full":
                 my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
-                
-                if create_self_shading == True:                   
-                    if brick_type == "full" and fixed == False:
-                        if count[0] < len(color_values):
-                            translation_color_values = color_values[count[0]]
-                            count[0] += 1
-                            T = Translation.from_vector(frame.xaxis *-(translation_color_values))
-                            frame = frame.transformed(T)
-                            print("frame:", frame)
-                            my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])   
 
-            elif create_corner_bricks == True:
-                pass
-                #my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
+                #if self_shading and not fixed: #if self shading is True and brick is not fixed
+                    #frame = create_self_shading(frame, color_values)
+                    #my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"], brick_dimensions["height"])
 
-            elif brick_type == "corner": 
-                my_brick = Brick.from_dimensions(frame, brick_dimensions["length"], brick_dimensions["width"]/2, brick_dimensions["height"])
-                    
             elif brick_type == "insulated":
                 my_brick = Brick.from_mesh_and_frame(insulated_brick_mesh, frame)          
             else:
                 return 
             assembly.add_element(my_brick, attr_dict={"brick_type": brick_type, "fixed": fixed})
-
 
         for course in range(courses):
             z_val = course * (brick_height + mortar_joint_height)
@@ -409,7 +389,6 @@ class ReferenceElement(object):
                         T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
                         current_frame = current_frame.transformed(T1*T2)
                         create_brick_and_add_to_assembly("insulated", fixed=True , frame = current_frame)
-
 
                     else: #brick_in_course_is_even
                         create_brick_and_add_to_assembly("full", fixed=True , frame = current_frame)

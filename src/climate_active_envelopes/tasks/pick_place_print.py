@@ -1,8 +1,9 @@
 from fabrication_manager.task import Task
 from compas.geometry import Frame, Translation, Vector
 from compas_fab.robots import Configuration, Robot
-import fabtory_fabrication_control as ffc
+#import fabtory_fabrication_control as ffc
 import compas_rrc as rrc
+import abb_fabrication_control as ffc
 
 __all__ = [
     "StartConfigurationTask"
@@ -128,9 +129,8 @@ class PlaceBrickTask(Task):
         self.log('gripper is open')
 
         #Move back to safety_position
-        # safety_frame = safety_frame.transformed(T)
-        # ffc.commands.move_to_robtarget(self.robot, safety_frame, self.cart)
-        # self.log('robot moved to safety_frame')
+        ffc.commands.move_to_robtarget(self.robot, safety_frame, self.cart)
+        self.log('robot moved to safety_frame')
 
         self.configuration = Configuration((3.790, -1.251, 0.028, 0.546, 0.547, -0.648, -2.023), (2, 0, 0, 0, 0, 0, 0), ('axis_joint', 'joint_1', 'joint_2', 'joint_3', 'joint_4', 'joint_5', 'joint_6'))
         ffc.commands.move_to_joints(self.robot, self.configuration)
