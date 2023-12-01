@@ -295,7 +295,7 @@ class ReferenceElement(object):
                                          fixed = True, 
                                          frame=None, 
                                          create_self_shading = True): 
-        """Function to create a brick and add it to the assembly"""
+        """Create a brick with a specified type and to add it to the assembly"""
 
         if frame is None:
             frame = self.frame
@@ -410,20 +410,20 @@ class ReferenceElement(object):
                         T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
                         current_frame = current_frame.transformed(T1*T2)
                         brick_type = "insulated"
-
+                        fixed = True
                         if add_outer_corner and brick == 0:
                             R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point) 
                             T1 = Translation.from_vector(current_frame.xaxis *- (brick_width/2 + mortar_joint_height/4))
                             T2 = Translation.from_vector(current_frame.yaxis *+ (brick_length/3 + mortar_joint_height))
                             current_frame.transform(R*T1*T2)
                             brick_type = "half"
-
+                            fixed = False
                         self.create_brick_and_add_to_assembly(brick_type=brick_type, 
                                                              brick_dimensions=brick_dimensions, 
                                                              assembly=assembly, 
                                                              color_values = color_values, 
                                                              insulated_brick_mesh=insulated_brick_mesh, 
-                                                             fixed=True, 
+                                                             fixed=fixed, 
                                                              frame = current_frame, 
                                                              create_self_shading=create_self_shading)
                         
@@ -475,17 +475,19 @@ class ReferenceElement(object):
                         T2 = Translation.from_vector(current_frame.yaxis *- ((brick_length/2 + brick_width/2) + mortar_joint_height/2 + mortar_joint_height))
                         current_frame = current_frame.transformed(R*T1*T2) 
                         brick_type = "insulated"
+                        fixed = True
                         if add_outer_corner and brick == 1:
                             T1 = Translation.from_vector(current_frame.xaxis *- (brick_length/2 + mortar_joint_height))
                             T2 = Translation.from_vector(current_frame.yaxis *+ (brick_width/3 - mortar_joint_height/2))
                             current_frame.transform(T1*T2)
                             brick_type = "half"
+                            fixed = False
                         self.create_brick_and_add_to_assembly(brick_type=brick_type, 
                                                              brick_dimensions=brick_dimensions, 
                                                              assembly=assembly, 
                                                              color_values = color_values, 
                                                              insulated_brick_mesh=insulated_brick_mesh, 
-                                                             fixed=True, 
+                                                             fixed=fixed, 
                                                              frame = current_frame, 
                                                              create_self_shading=create_self_shading)
 
@@ -508,17 +510,24 @@ class ReferenceElement(object):
                                         frame = current_frame, 
                                         create_self_shading=create_self_shading) 
 
-                        # T1 = Translation.from_vector(current_frame.xaxis *+ (brick_length + mortar_joint_height)) #brick_insulated, fixed
-                        # T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
-                        # current_frame = current_frame.transformed(T1*T2)
-                        # self.create_brick_and_add_to_assembly(brick_type="insulated", 
-                        #                                      brick_dimensions=brick_dimensions, 
-                        #                                      assembly=assembly, 
-                        #                                      color_values = color_values, 
-                        #                                      insulated_brick_mesh=insulated_brick_mesh, 
-                        #                                      fixed=True, 
-                        #                                      frame = current_frame, 
-                        #                                      create_self_shading=create_self_shading) 
+                        T1 = Translation.from_vector(current_frame.xaxis *+ (brick_length + mortar_joint_height)) #brick_insulated, fixed
+                        T2 = Translation.from_vector(current_frame.yaxis *- (mortar_joint_height/6))
+                        current_frame = current_frame.transformed(T1*T2)
+                        brick_type="insulated"
+                        fixed = True
+                        if add_outer_corner and brick == 1:
+                            T3 = Translation.from_vector(current_frame.yaxis *- (brick_length + mortar_joint_height)) 
+                            current_frame.transform(T3)
+                            brick_type="half"
+                            fixed = True
+                        self.create_brick_and_add_to_assembly(brick_type=brick_type, 
+                                                             brick_dimensions=brick_dimensions, 
+                                                             assembly=assembly, 
+                                                             color_values = color_values, 
+                                                             insulated_brick_mesh=insulated_brick_mesh, 
+                                                             fixed=fixed, 
+                                                             frame = current_frame, 
+                                                             create_self_shading=create_self_shading) 
                                     
                     else: #brick_in_course_is_odd, brick_full, fixed
                         if add_outer_corner and brick == 0:
@@ -539,7 +548,6 @@ class ReferenceElement(object):
                         T2 = Translation.from_vector(current_frame.xaxis *+ ((brick_length/2+brick_width/2) + mortar_joint_height))
                         current_frame = current_frame.transformed(R*T1*T2)
                         brick_type="insulated"
-
                         if add_outer_corner:
                             if brick == 0:
                                 brick_type="full"
@@ -549,7 +557,6 @@ class ReferenceElement(object):
                                 T4 = Translation.from_vector(current_frame.xaxis *- (brick_width/2 + mortar_joint_height/4))
                                 current_frame = current_frame.transformed(R1*T3*T4)
                                 brick_type="insulated"
-
                         self.create_brick_and_add_to_assembly(brick_type=brick_type, 
                                         brick_dimensions=brick_dimensions, 
                                         assembly=assembly, 
@@ -559,29 +566,43 @@ class ReferenceElement(object):
                                         frame = current_frame, 
                                         create_self_shading=create_self_shading)
                                                                         
-                        # T = Translation.from_vector(current_frame.yaxis *- (brick_width+mortar_joint_height)) #brick_insulated, fixed
-                        # current_frame = current_frame.transformed(T)
-                        # self.create_brick_and_add_to_assembly(brick_type="insulated", 
-                        #                                      brick_dimensions=brick_dimensions, 
-                        #                                      assembly=assembly, 
-                        #                                      color_values = color_values, 
-                        #                                      insulated_brick_mesh=insulated_brick_mesh, 
-                        #                                      fixed=True, 
-                        #                                      frame = current_frame, 
-                        #                                      create_self_shading=create_self_shading) 
+                        T = Translation.from_vector(current_frame.yaxis *- (brick_width + mortar_joint_height)) #brick_insulated, fixed
+                        current_frame = current_frame.transformed(T)
+                        if add_outer_corner and brick == 2:
+                            T1 = Translation.from_vector(current_frame.xaxis *+ (brick_width/2 + mortar_joint_height/2))
+                            current_frame = current_frame.transformed(T1)
+                        self.create_brick_and_add_to_assembly(brick_type="insulated", 
+                                                             brick_dimensions=brick_dimensions, 
+                                                             assembly=assembly, 
+                                                             color_values = color_values, 
+                                                             insulated_brick_mesh=insulated_brick_mesh, 
+                                                             fixed=True, 
+                                                             frame = current_frame, 
+                                                             create_self_shading=create_self_shading) 
 
-                #         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point) #brick_insulated, fixed
-                #         T1 = Translation.from_vector(current_frame.xaxis *+ (brick_width/2 + mortar_joint_height))
-                #         T2 = Translation.from_vector(current_frame.yaxis *- ((brick_length/2 + brick_width/2) + mortar_joint_height/2 + mortar_joint_height))
-                #         current_frame = current_frame.transformed(R*T1*T2)
-                #         self.create_brick_and_add_to_assembly(brick_type="insulated", 
-                #                                              brick_dimensions=brick_dimensions, 
-                #                                              assembly=assembly, 
-                #                                              color_values = color_values, 
-                #                                              insulated_brick_mesh=insulated_brick_mesh, 
-                #                                              fixed=True, 
-                #                                              frame = current_frame, 
-                #                                              create_self_shading=create_self_shading) 
+
+                        R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point) #brick_insulated, fixed
+                        T1 = Translation.from_vector(current_frame.xaxis *+ (brick_width/2 + mortar_joint_height))
+                        T2 = Translation.from_vector(current_frame.yaxis *- ((brick_length/2 + brick_width/2) + mortar_joint_height/2 + mortar_joint_height))
+                        current_frame = current_frame.transformed(R*T1*T2)
+                        brick_type="insulated"
+                        if add_outer_corner:
+                            if brick == 0:
+                                brick_type="full"
+                            elif brick == 2:
+                                R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(-90), point=current_frame.point)
+                                T1 = Translation.from_vector(current_frame.yaxis *- (brick_length/2 + brick_width/2 + mortar_joint_height+ mortar_joint_height/2))
+                                T2 = Translation.from_vector(current_frame.xaxis *- (brick_length - brick_width/2 + mortar_joint_height))
+                                current_frame = current_frame.transformed(R*T1*T2)
+
+                        self.create_brick_and_add_to_assembly(brick_type=brick_type, 
+                                                             brick_dimensions=brick_dimensions, 
+                                                             assembly=assembly, 
+                                                             color_values = color_values, 
+                                                             insulated_brick_mesh=insulated_brick_mesh, 
+                                                             fixed=True, 
+                                                             frame = current_frame, 
+                                                             create_self_shading=create_self_shading) 
 
 
      
