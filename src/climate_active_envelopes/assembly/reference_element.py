@@ -7,6 +7,7 @@ import math as m
 #from compas_fab.robots import JointTrajectoryPoint
 
 from compas.datastructures import Mesh
+from compas_rhino.geometry import RhinoBrep
 from compas.datastructures import mesh_transform
 
 from compas.geometry import Frame, Translation, Rotation, Transformation
@@ -15,7 +16,6 @@ from compas.geometry import cross_vectors
 from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
-from compas_rhino.geometry import RhinoMesh
 from .utilities import _deserialize_from_data
 from .utilities import _serialize_to_data
 
@@ -81,7 +81,7 @@ class ReferenceElement(object):
             New instance of element.
         """
         element = cls(frame)
-
+        #element.brep = brep
         element.mesh = mesh
         element.length = length
         element.height = height
@@ -336,7 +336,6 @@ class ReferenceElement(object):
         elif self.bond_type == "english_bond":
             self.generate_brick_assembly_english_bond()
 
-
     def generate_brick_assembly_flemish_bond(self, 
                                              brick_dimensions={"length": 0.24, "width": 0.115, "height": 0.075, "joint_height": 0.01}, 
                                              insulated_brick_mesh=None, 
@@ -411,8 +410,8 @@ class ReferenceElement(object):
                             fixed = False
                         self.create_brick_and_add_to_assembly(brick_type=brick_type, fixed=fixed, frame = current_frame, **params)
                         
-                    else: #brick_in_course_is_even, brick_full, fixed
-                        self.create_brick_and_add_to_assembly(brick_type="full", fixed=True, frame = current_frame, **params)
+                    else: 
+                        self.create_brick_and_add_to_assembly(brick_type="full", fixed=True, frame = current_frame, **params) # brick_full, fixed
                         
                         R = Rotation.from_axis_and_angle(current_frame.zaxis, m.radians(90), point=current_frame.point) #brick_insulated, fixed
                         T1 = Translation.from_vector(current_frame.yaxis *+ (brick_width/2 + mortar_joint_height/4))
