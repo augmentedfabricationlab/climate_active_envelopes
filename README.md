@@ -19,7 +19,7 @@
 
 Execute the commands below in Anaconda Prompt:
 
-#### Install Compas & Compas Fab
+#### Install Compas 
 
     (base) conda create -n cae -c conda-forge compas
     (base) pip install compas==2.0.0-alpha.1
