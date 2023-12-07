@@ -40,7 +40,7 @@ Execute the commands below in Anaconda Prompt:
 
 ## Install Dependencies
 
-    (learn) conda install git
+    (cae) conda install git
     
 #### Assembly Information Model
     
