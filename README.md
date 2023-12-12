@@ -10,8 +10,10 @@
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
 
-  
-#### [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) 
+## Dependencies
+
+* [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
+* [Climate_Active_Envelopes_Fabrication](https://github.com/augmentedfabricationlab/climate_active_envelopes_fabrication)
 
 ## Getting Started
 
@@ -47,15 +49,6 @@ Execute the commands below in Anaconda Prompt:
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (cae) python -m compas_rhino.install -p assembly_information_model -v 7.0
     
-#### ABB Fabrication Control
-    
-    (cae) conda install compas_rrc -v 7.0
-    (cae) python -m compas_rhino.install -p compas_rrc
-
-#### Fabrication Manager
-
-    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/fabrication_manager@master#egg=fabrication_manager
-    (cae) python -m compas_rhino.install -p fabrication_manager -v 7.0
     
 #### Install on Rhino
 
@@ -66,7 +59,6 @@ Execute the commands below in Anaconda Prompt:
 #### Repository Cloning
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
 * Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder.
-* Also clone the repository [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
 
 #### Install the repository in editable mode
     (cae) python -m pip install -e <your_path>/<your_repository_name>
