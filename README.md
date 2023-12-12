@@ -1,6 +1,6 @@
 # Climate Active Envelopes
 
-**Quick links:** [COMPAS](https://compas.dev/) | [COMAS FAB](https://gramaziokohler.github.io/compas_fab/latest/)
+**Quick links:** [COMPAS](https://compas.dev/)
 
 ## Requirements
 
