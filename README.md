@@ -1,6 +1,6 @@
 # Climate Active Envelopes
 
-**Quick links:** [COMPAS](https://compas.dev/)
+**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html)
 
 ## Requirements
 
