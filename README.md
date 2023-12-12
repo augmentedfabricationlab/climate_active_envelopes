@@ -19,10 +19,10 @@
 
 Execute the commands below in Anaconda Prompt:
 
-#### Install Compas & Compas Fab
- 
-    (base) conda config --add channels conda-forge
-    (base) conda create -n cae compas_fab --yes
+#### Install Compas 
+
+    (base) conda create -n cae -c conda-forge compas
+    (base) pip install compas==2.0.0-alpha.1
     (base) conda activate cae
     
 #### Install on Rhino
@@ -33,14 +33,14 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) pip show compas
     
-    Name: compas
-    Version: 0.XX.X
-    Summary: Robotic fabrication package for the COMPAS Framework
+    Name: COMPAS
+    Version: 2.0.0a1
+    Summary: The COMPAS framework
     ....
 
 ## Install Dependencies
 
-    (learn) conda install git
+    (cae) conda install git
     
 #### Assembly Information Model
     
