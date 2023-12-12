@@ -5,7 +5,8 @@ from __future__ import print_function
 import json
 import os
 from copy import deepcopy
-from compas.datastructures import Network, network
+from compas.datastructures import Network
+#from compas.datastructures import CellNetwork
 
 from .reference_element import ReferenceElement
 
@@ -47,6 +48,31 @@ class ReferenceModel(FromToData, FromToJson):
     >>>     element = Element.from_box(Box(Frame.worldXY(), 10, 5, 2))
     >>>     assembly.add_element(element)
     """
+    # def __init__(self,
+    #             elements=None,
+    #             attributes=None,
+    #             default_element_attributes=None,
+    #             default_connection_attributes=None):
+
+    #     self.network = CellNetwork()
+    #     self.network.attributes.update({'name': 'ReferenceModel'})
+
+    #     if attributes is not None:
+    #         self.network.attributes.update(attributes)
+
+    #     self.network.default_cell_attributes.update({
+    #         'element_type': "outer_wall"
+    #     })
+  
+    #     if default_element_attributes is not None:
+    #         self.network.default_vertex_attributes.update(default_element_attributes)
+
+    #     if default_connection_attributes is not None:
+    #         self.network.default_edge_attributes.update(default_connection_attributes)
+
+    #     if elements:
+    #         for element in elements:
+    #             self.add_element(element)
 
     def __init__(self,
                  elements=None,
@@ -148,6 +174,8 @@ class ReferenceModel(FromToData, FromToJson):
         """
         attr_dict.update(kwattr)
         x, y, z = element.frame.point
+        # key = self.network.add_cell(key=key, attr_dict=attr_dict,
+        #                             x=x, y=y, z=z, element=element)
         key = self.network.add_node(key=key, attr_dict=attr_dict,
                                     x=x, y=y, z=z, element=element)
         return key
@@ -275,6 +303,8 @@ class ReferenceModel(FromToData, FromToJson):
         """
         attr_dict.update(kwattr)
         x, y, z = element.frame.point
+        # key = self.network.add_cell(key=key, attr_dict=attr_dict,
+        #                             x=x, y=y, z=z, element=element)
         key = self.network.add_node(key=key, attr_dict=attr_dict,
                                     x=x, y=y, z=z, element=element)
         return key

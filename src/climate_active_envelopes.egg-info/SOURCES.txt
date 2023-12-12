@@ -26,3 +26,5 @@ src/climate_active_envelopes/assembly/sequencing.py
 src/climate_active_envelopes/assembly/utilities.py
 src/climate_active_envelopes/export/__init__.py
 src/climate_active_envelopes/export/exporter.py
+src/climate_active_envelopes/tasks/__init__.py
+src/climate_active_envelopes/tasks/pick_place_print.py
