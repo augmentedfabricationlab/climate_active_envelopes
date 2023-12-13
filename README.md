@@ -24,7 +24,7 @@ Execute the commands below in Anaconda Prompt:
 #### Install Compas 
 
     (base) conda create -n cae -c conda-forge compas
-    (base) pip install compas==2.0.0-alpha.1
+    (base) pip install compas==2.0.0a2
     (base) conda activate cae
     
 #### Install on Rhino
@@ -36,7 +36,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) pip show compas
     
     Name: COMPAS
-    Version: 2.0.0a1
+    Version: 2.0.0a2
     Summary: The COMPAS framework
     ....
 
