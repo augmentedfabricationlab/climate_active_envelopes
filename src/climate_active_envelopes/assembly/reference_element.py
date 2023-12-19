@@ -6,10 +6,10 @@ import json
 import math as m
 #from compas_fab.robots import JointTrajectoryPoint
 
-from compas.datastructures import Mesh
-from compas_rhino.geometry import RhinoBrep
+from compas.datastructures import Mesh, CellNetwork
 from compas.datastructures import mesh_transform
 
+from compas.geometry import Box
 from compas.geometry import Frame, Translation, Rotation, Transformation
 from compas.geometry import centroid_points
 from compas.geometry import cross_vectors
@@ -95,37 +95,56 @@ class ReferenceElement(object):
 
         return element
 
+
     @classmethod
-    def from_parameters_2(cls, frame, brep, length=3.0, height=1.0, bond_type="stretcher_header_bond"):
-        """Construct a reference element from a set of parameters.
+    def from_dimensions(cls, frame, length=3.0, height=2.5, depth=3.0,  bond_type="stretcher_header_bond"):
+        """Construct a primitive element with the given dimensions.
 
         Parameters
         ----------
-        mesh : :class:`Mesh`
-            Mesh datastructure.
-        frame : :class:`Frame`
-            Origin frame of the element.
+        length : float
+            length of the face
 
+        width : float
+            width of the face.
         Returns
         -------
         :class:`Element`
             New instance of element.
         """
+        #frame = Frame.worldXY()
+        
         element = cls(frame)
-        element.brep = brep
         element.length = length
         element.height = height
+        element.depth = depth
         element.bond_type = bond_type
 
-        element.brick_assembly = None
+        vertices = [
+            frame.point,
+            frame.point + frame.xaxis * length,
+            frame.point + frame.xaxis * length + frame.yaxis * height,
+            frame.point + frame.yaxis * height,
+            frame.point + frame.zaxis * depth,
+            frame.point + frame.zaxis * depth + frame.xaxis * length,
+            frame.point + frame.zaxis * depth + frame.xaxis * length + frame.yaxis * height,
+            frame.point + frame.zaxis * depth + frame.yaxis * height
+        ]
 
-        # element = cls(Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0]))
-        # T = Transformation.from_frame_to_frame(element.frame, t_frame)
-        # mesh_transformed = mesh.transformed(T)
-        # element._source = element._mesh = mesh_transformed
+        faces = [
+            [vertices[0], vertices[1], vertices[2], vertices[3]],
+            [vertices[4], vertices[5], vertices[6], vertices[7]],
+            [vertices[0], vertices[1], vertices[5], vertices[4]],
+            [vertices[1], vertices[2], vertices[6], vertices[5]],
+            [vertices[2], vertices[3], vertices[7], vertices[6]],
+            [vertices[3], vertices[0], vertices[4], vertices[7]]
+        ]
 
+        element.vertices = vertices
+        element.faces = faces
+
+        #element.brick_assembly = None
         return element
-
 
     @property
     def frame(self):

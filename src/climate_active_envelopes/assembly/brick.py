@@ -95,7 +95,7 @@ class Brick(object):
         return element
 
     @classmethod
-    def from_mesh_and_frame(cls, mesh, t_frame):
+    def from_mesh_and_frame(cls, mesh):
         """Construct an element from a mesh and frame.
 
         Parameters
@@ -112,15 +112,16 @@ class Brick(object):
         :class:`Element`
             New instance of element.
         """
-        
-        element = cls(Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0]))
+        t_frame = Frame.worldXY()
+        frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
+        element = cls(frame)
+
         T = Transformation.from_frame_to_frame(element.frame, t_frame)
         mesh_transformed = mesh.transformed(T)
-        frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
-        element.frame = frame
+        #frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
+        #element.frame = t_frame
 
         element._source = element._mesh = mesh_transformed
-
         return element
     
 
@@ -162,7 +163,7 @@ class Brick(object):
         return cls.from_shape(box, box.frame)
 
     @classmethod
-    def from_dimensions(cls, frame, length, width, height):
+    def from_dimensions(cls, length=0.24, width=0.115, height=0.075):
         """Construct an element with a box primitive with the given dimensions.
 
         Parameters
@@ -178,7 +179,14 @@ class Brick(object):
         :class:`Element`
             New instance of element.
         """
-        box = Box(frame, length, width, height)
+        frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
+        element = cls(frame)
+        element.length = length
+        element.height = height
+        element.width = width
+     
+        box = Box(length, width, height)
+        element._source = box
         return cls.from_shape(box, frame)
 
     @classmethod
