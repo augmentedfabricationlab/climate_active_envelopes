@@ -7,6 +7,7 @@ import os
 from copy import deepcopy
 from compas.datastructures import CellNetwork, Network
 
+from .cell import Cell
 from .reference_element import ReferenceElement
 
 from .utilities import FromToData

@@ -5,7 +5,7 @@ from __future__ import print_function
 import json
 import os
 from copy import deepcopy
-from compas.datastructures import Network, network
+from compas.datastructures import Network
 
 from .brick import Brick as Element
 

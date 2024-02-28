@@ -21,6 +21,7 @@ from .utilities import _serialize_to_data
 
 from .brick_assembly import Assembly
 from .brick import Brick
+from .cell import Cell
 
 
 __all__ = ['ReferenceElement']
@@ -97,7 +98,7 @@ class ReferenceElement(object):
 
 
     @classmethod
-    def from_dimensions(cls, frame, length=3.0, height=2.5, depth=3.0,  bond_type="stretcher_header_bond"):
+    def from_dimensions(cls, length=3.0, height=2.5, depth=3.0):
         """Construct a primitive element with the given dimensions.
 
         Parameters
@@ -112,13 +113,12 @@ class ReferenceElement(object):
         :class:`Element`
             New instance of element.
         """
-        #frame = Frame.worldXY()
+        frame = Frame.worldXY()
         
         element = cls(frame)
         element.length = length
         element.height = height
         element.depth = depth
-        element.bond_type = bond_type
 
         vertices = [
             frame.point,
@@ -142,8 +142,6 @@ class ReferenceElement(object):
 
         element.vertices = vertices
         element.faces = faces
-
-        #element.brick_assembly = None
         return element
 
     @property
