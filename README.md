@@ -5,7 +5,7 @@
 ## Requirements
 
 * Operating System: **Windows 10 Pro** <sup>(1)</sup>.
-* [Rhinoceros 3D 7.0](https://www.rhino3d.com/)
+* [Rhinoceros 3D 8.0](https://www.rhino3d.com/)
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
@@ -13,7 +13,8 @@
 ## Dependencies
 
 * [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
-* [Climate_Active_Envelopes_Fabrication](https://github.com/augmentedfabricationlab/climate_active_envelopes_fabrication)
+* [ABB Fabrication Control](https://compas-rrc.github.io/compas_rrc/latest/)
+* [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
 
 ## Getting Started
 
@@ -21,24 +22,26 @@
 
 Execute the commands below in Anaconda Prompt:
 
-#### Install Compas 
+#### Install Compas and Compas Fab
 
-    (base) conda create -n cae -c conda-forge compas
-    (base) pip install compas==2.0.0a2
+    (base) conda create -n cae -c conda-forge compas_fab
     (base) conda activate cae
-    
-#### Install on Rhino
-    
-    (cae) python -m compas_rhino.install -v 7.0
     
 #### Verify Installation
 
     (cae) pip show compas
+    or
+    (cae) python -m compas
     
     Name: COMPAS
     Version: 2.0.0a2
     Summary: The COMPAS framework
     ....
+
+#### Install compas for python3 in the following folder directory
+
+    (cae) cd .rhinocode/py39-rh8
+    (cae) ..../rhinocode/py39-rh8: python.exe -m pip install compas compas_fab
 
 ## Install Dependencies
 
@@ -47,12 +50,21 @@ Execute the commands below in Anaconda Prompt:
 #### Assembly Information Model
     
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
-    (cae) python -m compas_rhino.install -p assembly_information_model -v 7.0
+    (cae) python -m compas_rhino.install -p assembly_information_model -v 8.0
+
+#### ABB Fabrication Control
+
+    (cae) conda install compas_rrc 
+    (cae) python -m compas_rhino.install -p compas_rrc
     
+#### Fabrication Manager
+
+    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/fabrication_manager@master#egg=fabrication_manager
+    (cae) python -m compas_rhino.install -p fabrication_manager -v 8.0
     
 #### Install on Rhino
 
-    (cae) python -m compas_rhino.install -v 7.0
+    (cae) python -m compas_rhino.install -v 8.0
 
 ### 2. Cloning and installing the repository
 
@@ -66,4 +78,4 @@ Execute the commands below in Anaconda Prompt:
 
 ## Credits
 
-This package was created by Julia Fleckenstein at `@augmentedfabricationlab`
+This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab`
