@@ -34,8 +34,8 @@ Execute the commands below in Anaconda Prompt:
 
 #### Install compas for python3 in the following folder directory
 
-    (cae) cd .rhinocode/py39-rh8
-    (cae) ..../rhinocode/py39-rh8: python.exe -m pip install compas compas_fab
+    (cae) cd .rhinocode\py39-rh8
+    (cae) python.exe -m pip install compas compas_fab
 
 ## Install Dependencies
 
