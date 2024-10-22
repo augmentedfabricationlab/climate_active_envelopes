@@ -32,10 +32,10 @@ Execute the commands below in Anaconda Prompt:
     (cae) python -m compas
             Yay! COMPAS is installed correctly!
 
-#### Install compas for python3 in the following folder directory
+#### Install compas, compas_fab and compas_rrc for python3 in the following folder directory
 
     (cae) cd .rhinocode\py39-rh8
-    (cae) python.exe -m pip install compas compas_fab
+    (cae) python.exe -m pip install compas compas_fab compas_rrc
 
 ## Install Dependencies
 
@@ -45,12 +45,7 @@ Execute the commands below in Anaconda Prompt:
     
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (cae) python -m compas_rhino.install -p assembly_information_model -v 8.0
-
-#### ABB Fabrication Control
-
-    (cae) conda install compas_rrc 
-    (cae) python -m compas_rhino.install -p compas_rrc
-    
+  
 #### Fabrication Manager
 
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/fabrication_manager@master#egg=fabrication_manager
