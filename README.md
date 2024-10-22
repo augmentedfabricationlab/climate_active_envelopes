@@ -45,11 +45,6 @@ Execute the commands below in Anaconda Prompt:
     
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (cae) python -m compas_rhino.install -p assembly_information_model -v 8.0
-
-#### Fabtory Fabrication Control
-    
-    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/fabtory_fabrication_control@master#egg=fabtory_fabrication_control
-    (cae) python -m compas_rhino.install -p fabtory_fabrication_control -v 8.0
   
 #### Fabrication Manager
 
