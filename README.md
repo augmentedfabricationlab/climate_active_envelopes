@@ -1,6 +1,6 @@
 # Climate Active Envelopes
 
-**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html)
+**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html), [Compas RRC](https://compas-rrc.github.io/compas_rrc/latest/)
 
 ## Requirements
 
@@ -13,8 +13,8 @@
 ## Dependencies
 
 * [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
-* [ABB Fabrication Control](https://compas-rrc.github.io/compas_rrc/latest/)
 * [Fabtory Fabrication Control](https://github.com/augmentedfabricationlab/fabtory_fabrication_control)
+* [Fabrication Manager](https://github.com/augmentedfabricationlab/fabrication_manager)
 
 ## Getting Started
 
@@ -45,6 +45,11 @@ Execute the commands below in Anaconda Prompt:
     
     (cae) python -m pip install git+https://github.com/augmentedfabricationlab/assembly_information_model@master#egg=assembly_information_model
     (cae) python -m compas_rhino.install -p assembly_information_model -v 8.0
+
+#### Fabtory Fabrication Control
+    
+    (cae) python -m pip install git+https://github.com/augmentedfabricationlab/fabtory_fabrication_control@master#egg=fabtory_fabrication_control
+    (cae) python -m compas_rhino.install -p fabtory_fabrication_control -v 8.0
   
 #### Fabrication Manager
 
