@@ -29,14 +29,8 @@ Execute the commands below in Anaconda Prompt:
     
 #### Verify Installation
 
-    (cae) pip show compas
-    or
     (cae) python -m compas
-    
-    Name: COMPAS
-    Version: 2.0.0a2
-    Summary: The COMPAS framework
-    ....
+            Yay! COMPAS is installed correctly!
 
 #### Install compas for python3 in the following folder directory
 
