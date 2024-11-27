@@ -1,7 +1,5 @@
 # Climate Active Envelopes - Wall Design
 
-# Climate Active Envelopes Design
-
 **Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
 ## Requirements
@@ -55,7 +53,7 @@ Execute the commands below in Anaconda Prompt:
 
 #### Repository Cloning
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
-* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes_design) into you workspace folder.
+* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder.
 
 ## Credits
 
