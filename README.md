@@ -58,8 +58,3 @@ Execute the commands below in Anaconda Prompt:
 ## Credits
 
 This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab` <https://github.com/augmentedfabricationlab>
-
-
-## Credits
-
-This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab`
