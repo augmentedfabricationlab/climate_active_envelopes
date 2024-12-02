@@ -1,6 +1,6 @@
 # Climate Active Envelopes
 
-**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html), [Compas RRC](https://compas-rrc.github.io/compas_rrc/latest/)
+**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html), [Compas RRC](https://compas-rrc.github.io/compas_rrc/latest/), [Ladybug Tools](https://www.ladybug.tools/)
 
 ## Requirements
 
@@ -9,6 +9,7 @@
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
+* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
 ## Dependencies
 
