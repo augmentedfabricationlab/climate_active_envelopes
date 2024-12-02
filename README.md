@@ -1,4 +1,5 @@
 # Climate Active Envelopes
+## Full installation 
 
 **Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html), [Compas RRC](https://compas-rrc.github.io/compas_rrc/latest/), [Ladybug Tools](https://www.ladybug.tools/)
 
@@ -61,4 +62,4 @@ Execute the commands below in Anaconda Prompt:
 
 ## Credits
 
-This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab`
+This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab` [augmentedfabricationlab](https://github.com/augmentedfabricationlab)
