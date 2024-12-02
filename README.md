@@ -56,7 +56,6 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) cd .rhinocode\py39-rh8
     (cae) python.exe -m pip install your_filepath_to_assembly_information_model  
-
     (cae) python.exe -m pip install your_filepath_to_fabrication_manager
 
 ### 3. Install Ladybug Tools for climatic simulations
