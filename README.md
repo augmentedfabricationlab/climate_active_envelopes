@@ -41,7 +41,7 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) python -m compas_rhino.install -v 8.0
 
-#### Install compas, compas_fab and compas_rrc for python3 in the following folder directory
+#### Install compas, compas_fab and compas_rrc using the file path of the Rhino 8 Python executable
 
     (cae) cd .rhinocode\py39-rh8
     (cae) python.exe -m pip install compas compas_fab compas_rrc
@@ -54,11 +54,14 @@ Execute the commands below in Anaconda Prompt:
 
 #### Repository Cloning
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
-* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder.
+* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder as well as the other dependencies
 
-#### Install the repository in editable mode
-    (cae) python -m pip install -e <your_path>/<your_repository_name>
-    (cae) python -m compas_rhino.install -p climate_active_envelopes -v 7.0
+#### Make the repository accessible in Rhino 8
+
+    (cae) cd .rhinocode\py39-rh8
+    (cae) python.exe -m pip install your_filepath_to_assembly_information_model  
+
+    (cae) python.exe -m pip install your_filepath_to_fabrication_manager
 
 ## Credits
 
