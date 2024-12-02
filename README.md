@@ -57,4 +57,4 @@ Execute the commands below in Anaconda Prompt:
 
 ## Credits
 
-This package was created by `Julia Fleckenstein` <julia.fleckenstein@tum.de> [@ augmentedfabricationlab](https://github.com/augmentedfabricationlab)
+This package was created by `Julia Fleckenstein` <julia.fleckenstein@tum.de> at `augmentedfabricationlab` [augmentedfabricationlab](https://github.com/augmentedfabricationlab)
