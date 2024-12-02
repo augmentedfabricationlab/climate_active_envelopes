@@ -31,7 +31,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) python -m compas
             Yay! COMPAS is installed correctly!
 
-#### Install compas and compas_fab for python3 in the following folder directory
+#### Install compas, compas_fab and compas_rrc using the file path of the Rhino 8 Python executable
 
 Find the Rhino 8 Python executable by running the following in a terminal or command prompt:
 
