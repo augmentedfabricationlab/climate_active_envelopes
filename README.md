@@ -58,6 +58,10 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
 
     (cae) your_py39-rh8_path -m pip install your_filepath_to_assembly_information_model  
 
+### 3. Install Ladybug Tools for climatic simulations
+* Download and follow the installation guidline for [Pollination](https://docs.pollination.solutions/user-manual/grasshopper-plugin/download-and-install-the-grasshopper-plugin) to get access to the latest Ladybug Tools
+* Find any EPW map here: [EPW Maps](https://www.ladybug.tools/epwmap/)
+
 ## Credits
 
 This package was created by `Julia Fleckenstein` <julia.fleckenstein@tum.de> at `augmentedfabricationlab` [augmentedfabricationlab](https://github.com/augmentedfabricationlab)
