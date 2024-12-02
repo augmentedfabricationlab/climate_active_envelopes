@@ -63,6 +63,10 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) python.exe -m pip install your_filepath_to_fabrication_manager
 
+### 3. Install Ladybug Tools for climatic simulations
+* Download and Install [Pollination](https://docs.pollination.solutions/user-manual/grasshopper-plugin/download-and-install-the-grasshopper-plugin) to get access to the latest Ladybug Tools
+* Find EPW maps here: [EPW Maps](https://www.ladybug.tools/epwmap/)
+
 ## Credits
 
 This package was created by Julia Fleckenstein <julia.fleckenstein@tum.de> at `@augmentedfabricationlab` [augmentedfabricationlab](https://github.com/augmentedfabricationlab)
