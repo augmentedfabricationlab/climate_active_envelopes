@@ -45,10 +45,6 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) cd .rhinocode\py39-rh8
     (cae) python.exe -m pip install compas compas_fab compas_rrc
-
-## Install Dependencies
-
-    (cae) conda install git
        
 ### 2. Cloning and installing the repository
 
