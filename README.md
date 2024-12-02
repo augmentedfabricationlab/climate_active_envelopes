@@ -10,7 +10,7 @@
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
-* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* [Ladybug Tools](https://docs.pollination.solutions/user-manual/grasshopper-plugin/download-and-install-the-grasshopper-plugin)
 
 ## Dependencies
 
