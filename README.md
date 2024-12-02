@@ -54,12 +54,15 @@ Execute the commands below in Anaconda Prompt:
 ## Make the Assembly Information Model accessible in Rhino 8
 
 Find the Rhino 8 Python executable by running the following in a terminal or command prompt:
+
     (cae) python -m compas_rhino.print_python_path
 
 Your Rhino 8 Python path should look something like this:
+
     C:\Users\your_user_name\.rhinocode\py39-rh8\python.exe
 
 Then you can pip install all dependencies using the file path of the Rhino 8 Python executable:
+
     (cae) your_py39-rh8_path -m pip install your_filepath_to_assembly_information_model  
 
 ## Credits
