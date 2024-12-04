@@ -3,6 +3,8 @@ from __future__ import absolute_import
 from __future__ import division
 
 from compas.geometry import Frame
+from compas.geometry import Box
+from compas.geometry import Transformation
 from compas.datastructures import Mesh
 from compas.datastructures import Datastructure
 
@@ -10,6 +12,7 @@ from compas.geometry import cross_vectors
 from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
+
 
 from assembly_information_model import Part
 
@@ -161,4 +164,59 @@ class CAEPart(Part):
 
         return part
 
+    @classmethod
+    def from_dimensions(cls, name=None, length=None, width=None, height=None):
+        """Construct a part with a box primitive with the given dimensions.
 
+        Parameters
+        ----------
+        length : float
+            length of the box.
+        width : float
+            width of the box.
+        height : float
+            height of the box.
+        Returns
+        -------
+        :class:`Part`
+            New instance of part.
+        """
+        frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
+        part = cls(name, frame)
+        part.length = length
+        part.height = height
+        part.width = width
+     
+        box = Box(length, width, height, frame)
+        part._source = box
+        return cls.from_shape(box)
+    
+    @classmethod
+    def from_mesh_and_frame(cls, mesh, name=None):
+        """Construct an part from a mesh and frame.
+
+        Parameters
+        ----------
+        mesh : :class:`Mesh`
+            Mesh datastructure.
+        frame : :class:`Frame`
+            Origin frame of the part.
+        new_frame : :class:`Frame`
+            New frame of the part.
+
+        Returns
+        -------
+        :class:`Part`
+            New instance of part.
+        """
+        t_frame = Frame.worldXY()
+        frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
+        part = cls(name, frame)
+
+        T = Transformation.from_frame_to_frame(part.frame, t_frame)
+        mesh_transformed = mesh.transformed(T)
+        frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
+        part.frame = t_frame
+        part.attributes.update({'mesh':mesh})
+        #part._source = part._mesh = mesh_transformed
+        return part

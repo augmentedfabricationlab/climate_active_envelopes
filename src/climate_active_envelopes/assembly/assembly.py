@@ -90,10 +90,10 @@ class CAEAssembly(Assembly):
                                 ):
 
         brick_spacing = 0.015
-        brick_height = brick_geometry.shape.zsize
+        #brick_height = brick_geometry.shape.zsize
         brick_width = brick_geometry.shape.xsize
         brick_length = brick_geometry.shape.ysize
-        course = brick_height+brick_spacing
+        #course = brick_height+brick_spacing
 
         params = {"brick_geometry": brick_geometry, 
                     "brick_insulated": brick_insulated
@@ -174,9 +174,8 @@ class CAEAssembly(Assembly):
 
         brick_spacing = 0.015
         #brick_height_f = brick_geometry.shape.zsize
-        brick_width_f = brick_geometry.shape.xsize
+        #brick_width_f = brick_geometry.shape.xsize
         brick_length_f = brick_geometry.shape.ysize
-
         brick_width_i = brick_insulated.shape.xsize
         brick_length_i = brick_insulated.shape.ysize
       
