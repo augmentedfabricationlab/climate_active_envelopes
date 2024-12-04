@@ -58,8 +58,8 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
 
 ### 3. Install Ladybug Tools for climatic simulations
 * To get the latest Ladybug Tools and its simulations download and install:
-** [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
-** [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
+* ** [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* *** [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
 * Find any EPW map here: [EPW Maps](https://www.ladybug.tools/epwmap/)
 
 ## Credits
