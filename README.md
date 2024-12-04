@@ -10,7 +10,7 @@
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
-* [Ladybug Tools](https://docs.pollination.solutions/user-manual/grasshopper-plugin/download-and-install-the-grasshopper-plugin)
+* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
 ## Dependencies
 
@@ -59,7 +59,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) python.exe -m pip install your_filepath_to_fabrication_manager
 
 ### 3. Install Ladybug Tools for climatic simulations
-* Download and Install [Pollination](https://docs.pollination.solutions/user-manual/grasshopper-plugin/download-and-install-the-grasshopper-plugin) to get access to the latest Ladybug Tools
+* Download and Install [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) and [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) to get access to the latest Ladybug Tools and its simulations
 * Find EPW maps here: [EPW Maps](https://www.ladybug.tools/epwmap/)
 
 ## Credits
