@@ -57,7 +57,9 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
     (cae) your_py39-rh8_path -m pip install your_filepath_to_assembly_information_model  
 
 ### 3. Install Ladybug Tools for climatic simulations
-* * Download and Install [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) and [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) to get access to the latest Ladybug Tools and its simulations
+* To get the latest Ladybug Tools and its simulations download and install:
+  ** [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+  ** [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
 * Find any EPW map here: [EPW Maps](https://www.ladybug.tools/epwmap/)
 
 ## Credits
