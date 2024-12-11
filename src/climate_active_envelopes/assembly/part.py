@@ -22,9 +22,9 @@ class CAEPart(Part):
 
     Parameters
     ----------
-    name : str, optional
-        The name of the part.
-        The name will be stored in :attr:`Part.attributes`.
+    part_name : str, optional
+        The part_name of the part.
+        The part_name will be stored in :attr:`Part.attributes`.
     frame : :class:`compas.geometry.Frame`, optional
         The local coordinate system of the part.
 
@@ -41,12 +41,8 @@ class CAEPart(Part):
 
     """
 
-    def __init__(self, name=None, frame=None, **kwargs):
+    def __init__(self, part_name=None, frame=None, **kwargs):
         super(CAEPart, self).__init__()
-        self.attributes = {"name": name or "Part"}
-        self.attributes.update(kwargs)
-        self.key = None
-        self.frame = frame or Frame.worldXY()
 
     @property
     def gripping_frame(self):
@@ -152,7 +148,7 @@ class CAEPart(Part):
         -------
         Part
         """
-        part = CAEPart(name=self.attributes['name'], frame=self.frame.copy())
+        part = CAEPart(part_name=self.attributes['part_name'], frame=self.frame.copy())
         part.key = self.key
         
         if 'mesh' in self.attributes.keys():
@@ -165,7 +161,7 @@ class CAEPart(Part):
         return part
 
     @classmethod
-    def from_dimensions(cls, name=None, length=None, width=None, height=None):
+    def from_dimensions(cls, part_name=None, length=None, width=None, height=None):
         """Construct a part with a box primitive with the given dimensions.
 
         Parameters
@@ -182,7 +178,7 @@ class CAEPart(Part):
             New instance of part.
         """
         frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
-        part = cls(name, frame)
+        part = cls(part_name, frame)
         part.length = length
         part.height = height
         part.width = width
@@ -192,7 +188,7 @@ class CAEPart(Part):
         return cls.from_shape(box)
     
     @classmethod
-    def from_mesh_and_frame(cls, mesh, name=None):
+    def from_mesh_and_frame(cls, mesh, part_name=None):
         """Construct an part from a mesh and frame.
 
         Parameters
@@ -211,7 +207,7 @@ class CAEPart(Part):
         """
         t_frame = Frame.worldXY()
         frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
-        part = cls(name, frame)
+        part = cls(part_name, frame)
 
         T = Transformation.from_frame_to_frame(part.frame, t_frame)
         mesh_transformed = mesh.transformed(T)
