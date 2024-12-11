@@ -22,9 +22,9 @@ class CAEPart(Part):
 
     Parameters
     ----------
-    part_name : str, optional
-        The part_name of the part.
-        The part_name will be stored in :attr:`Part.attributes`.
+    name : str, optional
+        The name of the part.
+        The name will be stored in :attr:`Part.attributes`.
     frame : :class:`compas.geometry.Frame`, optional
         The local coordinate system of the part.
 
@@ -41,7 +41,7 @@ class CAEPart(Part):
 
     """
 
-    def __init__(self, part_name=None, frame=None, **kwargs):
+    def __init__(self, name=None, frame=None, **kwargs):
         super(CAEPart, self).__init__()
 
     @property
@@ -148,7 +148,7 @@ class CAEPart(Part):
         -------
         Part
         """
-        part = CAEPart(part_name=self.attributes['part_name'], frame=self.frame.copy())
+        part = CAEPart(name=self.attributes['name'], frame=self.frame.copy())
         part.key = self.key
         
         if 'mesh' in self.attributes.keys():
@@ -161,24 +161,29 @@ class CAEPart(Part):
         return part
 
     @classmethod
-    def from_dimensions(cls, part_name=None, length=None, width=None, height=None):
+    def from_dimensions(cls, name=None, length=None, width=None, height=None):
         """Construct a part with a box primitive with the given dimensions.
 
         Parameters
         ----------
+        name : str, optional
+            The name of the part.
         length : float
             length of the box.
         width : float
             width of the box.
         height : float
             height of the box.
+        frame : :class:`Frame`, optional
+            The local coordinate system of the part.
+
         Returns
         -------
         :class:`Part`
             New instance of part.
         """
         frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
-        part = cls(part_name, frame)
+        part = cls(name=name, frame=frame)
         part.length = length
         part.height = height
         part.width = width
@@ -188,7 +193,7 @@ class CAEPart(Part):
         return cls.from_shape(box)
     
     @classmethod
-    def from_mesh_and_frame(cls, mesh, part_name=None):
+    def from_mesh_and_frame(cls, mesh, name=None):
         """Construct an part from a mesh and frame.
 
         Parameters
@@ -197,8 +202,8 @@ class CAEPart(Part):
             Mesh datastructure.
         frame : :class:`Frame`
             Origin frame of the part.
-        new_frame : :class:`Frame`
-            New frame of the part.
+        name : str, optional
+            The name of the part.
 
         Returns
         -------
@@ -207,12 +212,11 @@ class CAEPart(Part):
         """
         t_frame = Frame.worldXY()
         frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
-        part = cls(part_name, frame)
+        part = cls(name=name, frame=frame)
 
         T = Transformation.from_frame_to_frame(part.frame, t_frame)
         mesh_transformed = mesh.transformed(T)
         frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
         part.frame = t_frame
         part.attributes.update({'mesh':mesh})
-        #part._source = part._mesh = mesh_transformed
         return part
