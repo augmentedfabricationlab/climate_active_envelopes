@@ -43,10 +43,6 @@ class CAEPart(Part):
 
     def __init__(self, name=None, frame=None, **kwargs):
         super(CAEPart, self).__init__()
-        self.attributes = {"name": name or "Part"}
-        self.attributes.update(kwargs)
-        self.key = None
-        self.frame = frame or Frame.worldXY()
 
     @property
     def gripping_frame(self):
@@ -170,19 +166,24 @@ class CAEPart(Part):
 
         Parameters
         ----------
+        name : str, optional
+            The name of the part.
         length : float
             length of the box.
         width : float
             width of the box.
         height : float
             height of the box.
+        frame : :class:`Frame`, optional
+            The local coordinate system of the part.
+
         Returns
         -------
         :class:`Part`
             New instance of part.
         """
         frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
-        part = cls(name, frame)
+        part = cls(name=name, frame=frame)
         part.length = length
         part.height = height
         part.width = width
@@ -201,8 +202,8 @@ class CAEPart(Part):
             Mesh datastructure.
         frame : :class:`Frame`
             Origin frame of the part.
-        new_frame : :class:`Frame`
-            New frame of the part.
+        name : str, optional
+            The name of the part.
 
         Returns
         -------
@@ -211,12 +212,11 @@ class CAEPart(Part):
         """
         t_frame = Frame.worldXY()
         frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
-        part = cls(name, frame)
+        part = cls(name=name, frame=frame)
 
         T = Transformation.from_frame_to_frame(part.frame, t_frame)
         mesh_transformed = mesh.transformed(T)
         frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
         part.frame = t_frame
         part.attributes.update({'mesh':mesh})
-        #part._source = part._mesh = mesh_transformed
         return part
