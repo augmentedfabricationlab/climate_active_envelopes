@@ -391,9 +391,7 @@ class CAEAssembly(Assembly):
             if key == 4:
                 pass
             else:
-                
                 part = self.part(key)
-
                 y_translation = values[i]
                 y_translation *= -0.08
                 translation_vector = part.frame.xaxis * y_translation
@@ -406,6 +404,16 @@ class CAEAssembly(Assembly):
                 part.transform(translation)
             i = i +1
 
+    # def create_self_shading(self, frame, color_values): 
+    #     """Function to create self shading effect"""
+
+    #     if self.count[0] < len(color_values): 
+    #         translation_color_values = color_values[self.count[0]] # Get translation value from color_values list
+    #         self.count[0] += 1  # Increment counter
+    #         T = Translation.from_vector(frame.xaxis * -(translation_color_values)) #Translate frame in x-direction with values from color_values list 
+    #         frame = frame.transformed(T) #Transform frame
+    #         print("frame:", frame) 
+    #     return frame  
 
     def generate_other_bond_archive(self,
                     brick_geometry,
