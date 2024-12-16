@@ -187,10 +187,9 @@ class CAEPart(Part):
         part.length = length
         part.height = height
         part.width = width
-     
         box = Box(length, width, height, frame)
         part._source = box
-        return cls.from_shape(box)
+        return cls.from_shape(box, name=name)   
     
     @classmethod
     def from_mesh_and_frame(cls, mesh, name=None):
