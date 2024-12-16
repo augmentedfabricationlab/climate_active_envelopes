@@ -77,8 +77,220 @@ class CAEAssembly(Assembly):
 
         self.add_part(transformed_brick, attr_dict={"brick_type": brick_type, "fixed": fixed})
 
-
     def generate_flemish_bond(self,
+                    brick_geometry,
+                    brick_insulated,
+                    initial_brick_center,
+                    num_bricks,
+                    plane,
+                    course_is_odd,
+                    ):
+
+        brick_spacing = 0.015
+        brick_length_f = brick_geometry.shape.ysize
+        brick_width_i = brick_insulated.shape.xsize
+        brick_length_i = brick_insulated.shape.ysize
+          
+        params = {"brick_geometry": brick_geometry, 
+                    "brick_insulated": brick_insulated 
+                    }
+
+        center_frame = plane_to_compas_frame(plane)
+
+        for i in range(num_bricks):
+            T = plane.XAxis * (i * (((5*brick_length_i)/3)+0.002))
+            #Shifting every second row
+            if course_is_odd == True:
+                T += plane.XAxis * ((brick_length_i+brick_width_i+ 3* brick_spacing)/2-0.003)
+            brick_center = initial_brick_center + T
+            brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
+
+            if not course_is_odd:
+                if i % 2 != 0:
+                    #self-shading bricks - first layer
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    T1 = Translation.from_vector(brick_frame.xaxis * (brick_length_f + brick_spacing)/2)
+                    current_frame = brick_frame.transformed(R*T1)
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+                else:
+                    #bricks - first layer - solid COPY BACKWARDS!!
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = brick_frame, **params) 
+            
+            if course_is_odd:
+                if i == 0: #Outter wall bricks: 
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T = Translation.from_vector(current_frame.xaxis *((brick_length_f + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T)
+                    T2 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    current_frame = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                if i >= 0 and i < num_bricks-1:
+                    if i % 2 != 0:                
+                        #self-shading bricks - first layer
+                        R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                        T1 = Translation.from_vector(brick_frame.xaxis * (brick_length_f + brick_spacing)/2)
+                        current_frame = brick_frame.transformed(R*T1)
+                        self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                    else:
+                        #bricks - first layer - solid
+                        self.add_to_assembly(brick_type = "full", fixed = True, frame = brick_frame, **params) 
+
+                elif i == num_bricks-1:
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T = Translation.from_vector(current_frame.xaxis *((brick_length_f + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T)
+                    T2 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
+                    current_frame = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+
+    def generate_flemish_bond_full_version(self,
+                    brick_geometry,
+                    brick_insulated,
+                    initial_brick_center,
+                    num_bricks,
+                    plane,
+                    course_is_odd,
+                    ):
+
+        brick_spacing = 0.015
+        #brick_height_f = brick_geometry.shape.zsize
+        #brick_width_f = brick_geometry.shape.xsize
+        brick_length_f = brick_geometry.shape.ysize
+        brick_width_i = brick_insulated.shape.xsize
+        brick_length_i = brick_insulated.shape.ysize
+      
+        
+
+        params = {"brick_geometry": brick_geometry, 
+                    "brick_insulated": brick_insulated 
+                    }
+
+        center_frame = plane_to_compas_frame(plane)
+
+        for i in range(num_bricks):
+            T = plane.XAxis * (i * (((5*brick_length_i)/3)+0.002))
+            #Shifting every second row
+            if course_is_odd == True:
+                T += plane.XAxis * ((brick_length_i+brick_width_i+ 3* brick_spacing)/2-0.003)
+            brick_center = initial_brick_center + T
+
+            brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
+
+            if not course_is_odd:
+
+                if i % 2 != 0:
+                    
+
+                    #self-shading bricks - first layer
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    T1 = Translation.from_vector(brick_frame.xaxis * (brick_length_f + brick_spacing)/2)
+                    current_frame = brick_frame.transformed(R*T1)
+
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                    T2 = Translation.from_vector(current_frame.xaxis * (brick_width_i + brick_spacing))
+                    current_frame2 = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame2, **params) 
+
+                else:
+                    #bricks - first layer - solid
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = brick_frame, **params) 
+
+                    T1 = Translation.from_vector(brick_frame.yaxis * (brick_length_i + brick_width_i + 2 * brick_spacing))
+                    current_frame = brick_frame.transformed(T1)
+                    T12 = Translation.from_vector(current_frame.yaxis * (-0.003))
+                    current_frame3 = current_frame.transformed(T12)
+                    self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame3 , **params) 
+
+                    R = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), point=current_frame.point)
+                    T1 = Translation.from_vector(current_frame.yaxis * (((brick_length_i + (brick_spacing))/2)))
+                    current_frame = current_frame.transformed(R*T1)
+                    T2 = Translation.from_vector(current_frame.xaxis * -((brick_width_i + brick_length_i + (2.5 * brick_spacing+0.002))/2))
+                    current_frame = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame , **params)
+
+                    T3 = Translation.from_vector(current_frame.yaxis * -(brick_width_i + (2*brick_spacing-0.006))/2)
+                    current_frame = current_frame.transformed(T3)
+                    self.add_to_assembly( brick_type = "insulated", fixed = True, frame = current_frame , **params)
+
+
+
+            #Outter frame of the wall:
+        
+            if course_is_odd:
+
+                if i == 0:
+                    #self.add_to_assembly(brick_type = "full", fixed = True, frame = brick_frame, **params) 
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T = Translation.from_vector(current_frame.xaxis *((brick_length_f + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T)
+                    T2 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    current_frame = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                    T = Translation.from_vector(current_frame.xaxis *((brick_width_i+brick_spacing)))
+                    current_frame = current_frame.transformed(T)
+                    self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame, **params) 
+
+                if i >= 0 and i < num_bricks-1:
+
+
+                    if i % 2 != 0:
+                        #self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
+                
+                        #self-shading bricks - first layer
+                        R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                        T1 = Translation.from_vector(brick_frame.xaxis * (brick_length_f + brick_spacing)/2)
+                        current_frame = brick_frame.transformed(R*T1)
+
+                        self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                        T2 = Translation.from_vector(current_frame.xaxis * (brick_width_i + brick_spacing))
+                        current_frame2 = current_frame.transformed(T2)
+                        self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame2, **params) 
+
+                    else:
+                        #bricks - first layer - solid
+                        self.add_to_assembly(brick_type = "full", fixed = True, frame = brick_frame, **params) 
+
+                        T1 = Translation.from_vector(brick_frame.yaxis * (brick_length_i + brick_width_i + 2 * brick_spacing))
+                        current_frame = brick_frame.transformed(T1)
+                        T12 = Translation.from_vector(current_frame.yaxis * (-0.003))
+                        current_frame3 = current_frame.transformed(T12)
+                        self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame3 , **params) 
+
+                        R = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), point=current_frame.point)
+                        T1 = Translation.from_vector(current_frame.yaxis * (((brick_length_i + (brick_spacing))/2)))
+                        current_frame = current_frame.transformed(R*T1)
+                        T2 = Translation.from_vector(current_frame.xaxis * -((brick_width_i + brick_length_i + (2.5 * brick_spacing+0.002))/2))
+                        current_frame = current_frame.transformed(T2)
+                        self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame , **params)
+
+                        T3 = Translation.from_vector(current_frame.yaxis * -(brick_width_i + (2*brick_spacing-0.006))/2)
+                        current_frame = current_frame.transformed(T3)
+                        self.add_to_assembly( brick_type = "insulated", fixed = True, frame = current_frame , **params)
+
+                elif i == num_bricks-1:
+
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T = Translation.from_vector(current_frame.xaxis *((brick_length_f + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T)
+                    T2 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
+                    current_frame = current_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
+
+                    T = Translation.from_vector(current_frame.xaxis * ((brick_width_i+brick_spacing)))
+                    current_frame = current_frame.transformed(T)
+                    self.add_to_assembly(brick_type = "insulated", fixed = True, frame = current_frame, **params)        
+
+    def generate_flemish_bond_2(self,
                                 brick_geometry,
                                 brick_insulated,
                                 initial_brick_center,
@@ -162,7 +374,6 @@ class CAEAssembly(Assembly):
 
             if num_bricks % 2 == 0:
                 num_bricks = num_bricks-1
-
             course_is_odd = j %2 != 0 #check if course is odd or even
 
             if course_is_odd == True and num_bricks % 2 != 0:
@@ -174,11 +385,9 @@ class CAEAssembly(Assembly):
             line.From = start_point
             initial_brick_center = line.From
 
-
             T = plane.XAxis * (brick_length+brick_spacing)
             initial_brick_center += T
         
-
             if j == 0:
                 #Calculating the length of the wall
                 half_bricks = math.ceil(num_bricks / 2)
