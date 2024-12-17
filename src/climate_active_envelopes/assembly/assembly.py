@@ -136,7 +136,7 @@ class CAEAssembly(Assembly):
                     
                     T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                     current_frame = brick_frame.transformed(T2)
-                    self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params)
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params)
             
             if course_is_odd:
                 if brick == 0: #Outter wall bricks
@@ -162,7 +162,7 @@ class CAEAssembly(Assembly):
 
                         T6 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                         current_frame = brick_frame.transformed(T6)
-                        self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params)
+                        self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params)
 
                 elif brick == bricks_per_course-1:
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
@@ -212,12 +212,8 @@ class CAEAssembly(Assembly):
             # Calculate the direction vector of the line
             direction_vector = line.To - line.From
             direction_vector.Unitize()
-
             T = direction_vector * (brick_length + brick_spacing)
             initial_brick_center += T
-            
-            #T = plane.XAxis * (brick_length + brick_spacing)
-            #initial_brick_center += T
         
             if j == 0:
                 #Calculating the length of the wall
@@ -235,83 +231,31 @@ class CAEAssembly(Assembly):
                         **params)                   
         return total_length
 
+    def apply_gradient(self, values, keys):
 
-    def generate_wall_KD(self,
-                            bond,
-                            brick_full,
-                            brick_insulated,
-                            plane,
-                            lines
-                                                ):
-        brick_spacing = 0.015
-        brick_height = brick_full.shape.zsize
-        brick_width = brick_full.shape.xsize
-        brick_length = brick_full.shape.ysize
+        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
+        sorted_keys, sorted_values = zip(*sorted_keys_values)
 
-        center_frame = plane_to_compas_frame(plane)
-        total_length = 0
-        start_x = lines[1].FromX
-
-        params = {"brick_full": brick_full,
-                  "brick_insulated": brick_insulated,
-        "plane": plane
-        }
-
-        for j, line in enumerate(lines):
-            line_length = line.Length
-            halfway_point = line.PointAt(line.Length / 2)
-            bricks_per_course = math.floor(line_length / ((brick_width+brick_length)/2+brick_spacing))
-
-            if bricks_per_course % 2 == 0:
-                bricks_per_course = bricks_per_course-1
-            course_is_odd = j %2 != 0 #check if course is odd or even
-
-            if course_is_odd == True and bricks_per_course % 2 != 0:
-                bricks_per_course = bricks_per_course-1
-
-            # Making sure all the lines are the same
-            start_point = line.From
-            start_point.X = start_x 
-            line.From = start_point
-            initial_brick_center = line.From
-
-            T = plane.XAxis * (brick_length+brick_spacing)
-            initial_brick_center += T
-        
-            if j == 0:
-                #Calculating the length of the wall
-                half_bricks = math.ceil(bricks_per_course / 2)
-                total_length += half_bricks * (brick_length+brick_spacing) + (bricks_per_course-half_bricks)*(brick_width+brick_spacing)
-                total_length += 2 * (brick_length/2) 
-
-            #Pick the bond   
-            if bond == 0:
-                self.generate_flemish_bond(
-                        initial_brick_center = initial_brick_center,
-                        bricks_per_course = bricks_per_course,
-                        course_is_odd = course_is_odd,
-                        **params)                   
-        return total_length
-    
-    def apply_gradient(self, transform, values, keys):
         i = 0
         for key in keys:
             print(key)
-            if key == 4:
+            if key == 4: 
                 pass
             else:
                 part = self.part(key)
-                y_translation = values[i]
-                y_translation *= -0.08
-                translation_vector = part.frame.xaxis * y_translation
-                translation = Translation.from_vector(translation_vector)
+                if i < len(sorted_values):
+                    y_translation = sorted_values[i] * -0.08
+                else:
+                    y_translation = 0  # Default value if sorted_values list is shorter than sorted_keys list
 
-                # Apply the translation to the frame
-                transformed_frame = part.frame.transformed(translation)
+                
+                # Calculate the translation vector using the direction vector
+                translation_vector = part.frame.xaxis  * y_translation
+                translation = Translation.from_vector(translation_vector)
 
                 # Update the geometry position
                 part.transform(translation)
-            i = i +1
+            i += 1
 
 
 
