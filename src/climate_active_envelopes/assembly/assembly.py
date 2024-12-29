@@ -10,6 +10,7 @@ from compas_rhino.conversions import plane_to_compas_frame, point_to_compas
 
 from assembly_information_model import Assembly
 from .part import CAEPart as Part
+#from .element import CAEElement as Element
 
 import math
 import Rhino.Geometry as rg
@@ -173,6 +174,84 @@ class CAEAssembly(Assembly):
                     current_frame = current_frame.transformed(T8)
                     self.add_to_assembly(brick_type = "full", fixed = False, frame = current_frame, **params) 
 
+    def generate_flemish_bond_2(self,
+                    brick_full,
+                    brick_insulated,
+                    initial_brick_center,
+                    bricks_per_course,
+                    plane,
+                    course_is_odd,
+                    direction_vector
+                    ):
+        
+        brick_spacing = 0.015
+        mortar_joint_height = 0.015
+        center_brick_frame = plane_to_compas_frame(plane)
+        brick_width_i, brick_length_i, brick_length, _, _ = self.get_brick_dimensions(brick_full, brick_insulated)
+    
+        params = {"brick_full": brick_full, 
+                  "brick_insulated": brick_insulated 
+                }
+
+        for brick in range(bricks_per_course):
+            T = direction_vector * (brick * ((brick_length_i + brick_width_i)/2 + mortar_joint_height))
+
+            #Shifting every second row
+            if course_is_odd == True:
+                T += direction_vector * ((brick_length_i+brick_width_i+ 3* brick_spacing)/2-0.003)
+
+            brick_center = initial_brick_center + T
+            brick_frame = Frame(point_to_compas(brick_center), direction_vector, center_brick_frame.yaxis)
+
+            if not course_is_odd:
+                if brick % 2 != 0:
+                    #self-shading bricks
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    T1 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
+                    current_frame = brick_frame.transformed(R*T1)
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
+                else:
+                    #bricks - fixed
+                    self.add_to_assembly(brick_type = "full", fixed = False, frame = brick_frame, **params) 
+                    
+                    T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                    current_frame = brick_frame.transformed(T2)
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params)
+            
+            if course_is_odd:
+                if brick == 0: #Outter wall bricks
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T3 = Translation.from_vector(current_frame.xaxis *((brick_length + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T3)
+                    T4 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    current_frame = current_frame.transformed(T4)
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
+
+                if brick >= 0 and brick < bricks_per_course-1:
+                    if brick % 2 != 0:                
+                        #self-shading bricks - first layer
+                        R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                        T5 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
+                        current_frame = brick_frame.transformed(R*T5)
+                        self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
+
+                    else:
+                        #bricks - first layer - solid
+                        self.add_to_assembly(brick_type = "full", fixed = False, frame = brick_frame, **params) 
+
+                        T6 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                        current_frame = brick_frame.transformed(T6)
+                        self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params)
+
+                elif brick == bricks_per_course-1:
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R)
+                    T7 = Translation.from_vector(current_frame.xaxis *((brick_length + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T7)
+                    T8 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
+                    current_frame = current_frame.transformed(T8)
+                    self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
 
     def generate_wall(self,
                             bond,
@@ -228,14 +307,22 @@ class CAEAssembly(Assembly):
                         bricks_per_course = bricks_per_course,
                         course_is_odd = course_is_odd,
                         direction_vector=direction_vector,
-                        **params)                   
+                        **params) 
+                      
+            if bond == 1:
+                self.generate_flemish_bond_2(
+                        initial_brick_center = initial_brick_center,
+                        bricks_per_course = bricks_per_course,
+                        course_is_odd = course_is_odd,
+                        direction_vector=direction_vector,
+                        **params)             
         return total_length
 
-    def apply_gradient(self, values, keys):
+    def apply_gradient_translate(self, values, keys):
 
         sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
         sorted_keys, sorted_values = zip(*sorted_keys_values)
-
+                
         i = 0
         for key in keys:
             print(key)
@@ -247,7 +334,6 @@ class CAEAssembly(Assembly):
                     y_translation = sorted_values[i] * -0.08
                 else:
                     y_translation = 0  # Default value if sorted_values list is shorter than sorted_keys list
-
                 
                 # Calculate the translation vector using the direction vector
                 translation_vector = part.frame.xaxis  * y_translation
@@ -256,6 +342,75 @@ class CAEAssembly(Assembly):
                 # Update the geometry position
                 part.transform(translation)
             i += 1
+    
+    def apply_gradient_rotation(self, values, keys):
+        
+        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
+        sorted_keys, sorted_values = zip(*sorted_keys_values)
+                    
+        i = 0
+        for key in keys:
+            print(key)
+            if key == 4: 
+                pass
+            else:
+                part = self.part(key)
+                if i < len(sorted_values):
+                    rotation_angle = sorted_values[i] * 0.08  # Adjust the factor as needed
+                else:
+                    rotation_angle = 0  # Default value if sorted_values list is shorter than sorted_keys list
+                    
+                # Calculate the rotation transformation
+                rotation = Rotation.from_axis_and_angle(part.frame.zaxis, rotation_angle)
+
+                # Update the geometry position
+                part.transform(rotation)
+            i += 1
+
+    def apply_gradient(self, values, keys, transform_type="translate"):
+        """
+        Apply a gradient transformation to the parts.
+
+        Parameters
+        ----------
+        values : list
+            List of values to determine the transformation.
+        keys : list
+            List of keys identifying the parts.
+        transform_type : str, optional
+            Type of transformation to apply ("translate" or "rotate"). 
+        """
+        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
+        sorted_keys, sorted_values = zip(*sorted_keys_values)
+                    
+        i = 0
+        for key in keys:
+            print(key)
+            if key == 4: 
+                pass
+            else:
+                part = self.part(key)
+                if i < len(sorted_values):
+                    translation_factor = sorted_values[i] * 0.08  # factor for translation
+                    rotation_factor = sorted_values[i] * -0.4     #  factor for rotation
+                else:
+                    translation_factor = 0  # Default value if sorted_values list is shorter than sorted_keys list
+                    rotation_factor = 0  # Default value for rotation factor
+
+                if transform_type == "translate":
+                    # Calculate the translation vector using the direction vector
+                    translation_vector = part.frame.xaxis * translation_factor
+                    T = Translation.from_vector(translation_vector)
+                elif transform_type == "rotate":
+                    # Calculate the rotation transformation around the center_brick_frame
+                    center_brick_frame = part.frame
+                    R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
+                    translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
+                    T = R * Translation.from_vector(translation_vector)
+
+                    #T = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
 
 
-
+                # Update the geometry position
+                part.transform(T)
+            i += 1
