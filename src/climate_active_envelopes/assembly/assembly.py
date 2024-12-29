@@ -367,7 +367,7 @@ class CAEAssembly(Assembly):
                 part.transform(rotation)
             i += 1
 
-    def apply_gradient(self, values, keys, transform_type="translate"):
+    def apply_gradient(self, values, keys, transform_type="transform_type"):
         """
         Apply a gradient transformation to the parts.
 
@@ -407,10 +407,6 @@ class CAEAssembly(Assembly):
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
                     translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                     T = R * Translation.from_vector(translation_vector)
-
-                    #T = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-
-
                 # Update the geometry position
                 part.transform(T)
             i += 1
