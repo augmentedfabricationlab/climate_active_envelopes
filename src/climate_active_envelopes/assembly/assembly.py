@@ -367,7 +367,7 @@ class CAEAssembly(Assembly):
                 part.transform(rotation)
             i += 1
 
-    def apply_gradient(self, values, keys, transform_type="transform_type"):
+    def apply_gradient(self, values, keys, transform_type="translate"):
         """
         Apply a gradient transformation to the parts.
 
@@ -391,7 +391,7 @@ class CAEAssembly(Assembly):
             else:
                 part = self.part(key)
                 if i < len(sorted_values):
-                    translation_factor = sorted_values[i] * 0.08  # factor for translation
+                    translation_factor = sorted_values[i] * -0.08  # factor for translation
                     rotation_factor = sorted_values[i] * -0.4     #  factor for rotation
                 else:
                     translation_factor = 0  # Default value if sorted_values list is shorter than sorted_keys list
@@ -401,12 +401,15 @@ class CAEAssembly(Assembly):
                     # Calculate the translation vector using the direction vector
                     translation_vector = part.frame.xaxis * translation_factor
                     T = Translation.from_vector(translation_vector)
+                    
                 elif transform_type == "rotate":
                     # Calculate the rotation transformation around the center_brick_frame
                     center_brick_frame = part.frame
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
                     translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                     T = R * Translation.from_vector(translation_vector)
+                #else:
+                    #raise ValueError("Invalid transform_type. Use 'translate' or 'rotate'.")
                 # Update the geometry position
                 part.transform(T)
             i += 1
