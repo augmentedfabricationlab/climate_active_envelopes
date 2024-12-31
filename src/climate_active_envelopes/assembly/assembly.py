@@ -198,7 +198,7 @@ class CAEAssembly(Assembly):
 
             #Shifting every second row
             if course_is_odd == True:
-                T += direction_vector * ((brick_length_i+brick_width_i+ 3* brick_spacing)/2-0.003)
+                T += direction_vector * ((brick_length_i + brick_width_i+ 3* brick_spacing)/2-0.003)
 
             brick_center = initial_brick_center + T
             brick_frame = Frame(point_to_compas(brick_center), direction_vector, center_brick_frame.yaxis)
@@ -252,6 +252,10 @@ class CAEAssembly(Assembly):
                     T8 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
                     current_frame = current_frame.transformed(T8)
                     self.add_to_assembly(brick_type = "full", fixed = True, frame = current_frame, **params) 
+
+    def generate_cross_bond():
+        pass
+
 
     def generate_wall(self,
                             bond,
@@ -317,56 +321,7 @@ class CAEAssembly(Assembly):
                         direction_vector=direction_vector,
                         **params)             
         return total_length
-
-    def apply_gradient_translate(self, values, keys):
-
-        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
-        sorted_keys, sorted_values = zip(*sorted_keys_values)
-                
-        i = 0
-        for key in keys:
-            print(key)
-            if key == 4: 
-                pass
-            else:
-                part = self.part(key)
-                if i < len(sorted_values):
-                    y_translation = sorted_values[i] * -0.08
-                else:
-                    y_translation = 0  # Default value if sorted_values list is shorter than sorted_keys list
-                
-                # Calculate the translation vector using the direction vector
-                translation_vector = part.frame.xaxis  * y_translation
-                translation = Translation.from_vector(translation_vector)
-
-                # Update the geometry position
-                part.transform(translation)
-            i += 1
-    
-    def apply_gradient_rotation(self, values, keys):
-        
-        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
-        sorted_keys, sorted_values = zip(*sorted_keys_values)
-                    
-        i = 0
-        for key in keys:
-            print(key)
-            if key == 4: 
-                pass
-            else:
-                part = self.part(key)
-                if i < len(sorted_values):
-                    rotation_angle = sorted_values[i] * 0.08  # Adjust the factor as needed
-                else:
-                    rotation_angle = 0  # Default value if sorted_values list is shorter than sorted_keys list
-                    
-                # Calculate the rotation transformation
-                rotation = Rotation.from_axis_and_angle(part.frame.zaxis, rotation_angle)
-
-                # Update the geometry position
-                part.transform(rotation)
-            i += 1
-
+  
     def apply_gradient(self, values, keys, transform_type="translate"):
         """
         Apply a gradient transformation to the parts.
@@ -408,8 +363,6 @@ class CAEAssembly(Assembly):
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
                     translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                     T = R * Translation.from_vector(translation_vector)
-                #else:
-                    #raise ValueError("Invalid transform_type. Use 'translate' or 'rotate'.")
-                # Update the geometry position
+
                 part.transform(T)
             i += 1
