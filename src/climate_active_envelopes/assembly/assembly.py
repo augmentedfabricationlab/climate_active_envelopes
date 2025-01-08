@@ -306,12 +306,11 @@ class CAEAssembly(Assembly):
         sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
         sorted_keys, sorted_values = zip(*sorted_keys_values)
 
-        #transform_types = {node_id: node_data['transform_type'] for node_id, node_data in self.__data__['graph']['node'].items()}
-
-        transform_types = {node_id: self.graph.node_attribute(node_id, 'transform_type') for node_id in self.graph.nodes()}
+        #transform_types = {}
+        #for node in self.graph.nodes():
+        #    transform_types[node] = self.graph.node_attribute(node, 'transform_type')
 
         for i, key in enumerate(keys):
-            #print(key)
             part = self.part(key)
             if i < len(sorted_values):
                 translation_factor = sorted_values[i] * -0.08  # factor for translation
@@ -320,19 +319,14 @@ class CAEAssembly(Assembly):
                 translation_factor = 0  # Default value if sorted_values list is shorter than sorted_keys list
                 rotation_factor = 0  # Default value for rotation factor
 
-            #transform_type = transform_types.get(str(key), None)
-            #print(f"key: {key}, transform_type: {transform_type}")
-
             if transform_type == "translate":
-                part_transform_type = transform_types.get(str(key), None)
-                print(f"key: {key}, transform_type: {part_transform_type}")
+                #part_transform_type = transform_types.get(str(key), None)
+                #print(f"key: {key}, transform_type: {part_transform_type}")
                 # Calculate the translation vector using the direction vector
                 translation_vector = part.frame.xaxis * translation_factor
                 T = Translation.from_vector(translation_vector)
                
             elif transform_type == "rotate":
-                part_transform_type = transform_types.get(str(key), None)
-                print(f"key: {key}, transform_type: {part_transform_type}")
                 # Calculate the rotation transformation around the center_brick_frame
                 center_brick_frame = part.frame
                 R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
