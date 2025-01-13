@@ -1,0 +1,34 @@
+title: Climate Active Envelopes
+tagline: 'Climate Active Envelopes'
+description: Design Configurator Documentation for the Climate Active Envelopes project
+baseurl: "/climate_active_envelopes" # the subpath of your site, e.g. /blog
+url: "https://le-ar-n.github.io/robot_see_robot_do/" # the base hostname & protocol for your site
+theme: jekyll-theme-minimal
+
+github:
+  repo: https://augmentedfabricationlab.github.io/climate_active_envelopes/
+
+plugins:
+  - jekyll-feed
+
+# Build settings
+markdown: redcarpet
+highlighter: pygments
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+
+  # Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+#relative_permalinks: true
