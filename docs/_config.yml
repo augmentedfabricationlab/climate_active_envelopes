@@ -1,0 +1,29 @@
+# Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+#relative_permalinks: true
+
+# Setup
+title:           Climate-Active Envelopes
+tagline:          'Climate-Active Envelopes'
+description:      'Design Configurator for Climate-Active Envelopes'
+baseurl: "/climate_active_envelopes/" # the subpath of your site, e.g. /blog
+url: "https://augmentedfabricationlab.github.io/climate_active_envelopes/" # the base hostname & protocol for your site, e.g. http://example.com
+
+paginate:         5
+
+# Custom vars
+#version:          2.1.0
+
+github:
+  repo:           https://augmentedfabricationlab.github.io/climate_active_envelopes/
+
+plugins:
+  - jekyll-feed
+
+collections:
+  sessions:
+    output: true
