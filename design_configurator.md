@@ -1,4 +1,4 @@
-# Setting up the Design Configurator
+# Installation to run the design configurator
 
 **Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
