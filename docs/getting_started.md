@@ -3,68 +3,69 @@ layout: page
 title: Getting Started
 ---
 
-### Requirements
+# Installation to run the design configurator
 
-* Rhino 7 / Grasshopper
-* [Anaconda Python](https://www.anaconda.com/distribution/?gclid=CjwKCAjwo9rtBRAdEiwA_WXcFoyH8v3m-gVC55J6YzR0HpgB8R-PwM-FClIIR1bIPYZXsBtbPRfJ8xoC6HsQAvD_BwE)
+**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+
+## Requirements
+
+* Operating System: **Windows 10 Pro** <sup>(1)</sup>.
+* [Rhinoceros 3D 8.0](https://www.rhino3d.com/)
+* [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
-* [Github Desktop](https://desktop.github.com/)
-* [Docker Community Edition](https://www.docker.com/get-started): Download it for [Windows](https://store.docker.com/editions/community/docker-ce-desktop-windows). Leave "switch Linux containers to Windows containers" disabled.
+* [GitHub Desktop](https://desktop.github.com/)
+* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
-### Dependencies
+## Dependencies
 
-* [COMPAS](https://compas-dev.github.io/)
-* [COMPAS FAB](https://gramaziokohler.github.io/compas_fab/latest/)
-* [UR Fabrication Control](https://github.com/augmentedfabricationlab/ur_fabrication_control)
+* [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
 
-### 1. Setting up the Anaconda environment with COMPAS
+## Getting Started
+
+### 1. Setting up the Anaconda environment with all dependencies
 
 Execute the commands below in Anaconda Prompt:
-	
-    (base) conda config --add channels conda-forge
 
-#### Windows
-    (base) conda create -n rsrd compas_fab=0.22.0 --yes
-    (base) conda activate rsrd
+#### Install Compas and Compas Fab
 
-#### Mac
-    (base) conda create -n rsrd compas_fab=0.22.0 python.app --yes
-    (base) conda activate rsrd
-    
+    (base) conda create -n cae -c conda-forge compas_fab
+    (base) conda activate cae
 
 #### Verify Installation
 
-    (rsrd) pip show compas_fab
+    (cae) python -m compas
+            Yay! COMPAS is installed correctly!
 
-    Name: compas-fab
-    Version: 0.22.0
-    Summary: Robotic fabrication package for the COMPAS Framework
-    ...
+#### Install compas, compas_fab and compas_rrc using the file path of the Rhino 8 Python executable
 
-#### Install on Rhino
+Find the Rhino 8 Python executable by running the following in a terminal or command prompt:
 
-    (rsrd) python -m compas_rhino.install -v 7.0
+    (cae) python -m compas_rhino.print_python_path
 
+Your Rhino 8 Python path should look something like this:
 
-### 2. Installation of Dependencies
+    C:\Users\your_user_name\.rhinocode\py39-rh8\python.exe
 
-    (rsrd) conda install git
-
-#### UR Fabrication Control
+Then you can pip install using the file path of the Rhino 8 Python executable:
     
-    (rsrd) python -m pip install git+https://github.com/augmentedfabricationlab/ur_fabrication_control@master#egg=ur_fabrication_control
-    (rsrd) python -m compas_rhino.install -p ur_fabrication_control -v 7.0
+    (cae) your_py39-rh8_path -m pip install compas compas_fab
+    
+    
+### 2. Cloning and installing the repositories
 
+#### Repository Cloning
+* Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
+* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) and the [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
 
-### 3. Cloning the Course Repository
+#### Make the Assembly Information Model accessible in Rhino 8
 
-Create a workspace directory:
+    (cae) your_py39-rh8_path -m pip install your_filepath_to_assembly_information_model  
 
-    C:\Users\YOUR_USERNAME\workspace\projects
+### 3. Install Ladybug Tools for climatic simulations
+To get the latest Ladybug Tools and its simulations download and install:
+* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
+* [EPW Maps](https://www.ladybug.tools/epwmap/)
 
-Then open Github Desktop and clone the [Robot See Robot Do repository](https://github.com/augmentedfabricationlab/robot_see_robot_do) repository into your projects folder. Then install the repo within your environment (in editable mode):
-
-    (rsrd) pip install -e your_filepath_to_robot_see_robot_do
-    (rsrd) python -m compas_rhino.install -p robot_see_robot_do -v 7.0
 
 **Voilà! You can now go to VS Code, Rhino or Grasshopper to run the example files!**
