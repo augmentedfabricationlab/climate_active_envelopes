@@ -5,7 +5,7 @@ title: Team
 ### Professorship of Digital Fabrication, Technical University of Munich
 
 #### Julia Fleckenstein
-<img src="{{site.baseurl}}images/team-jf.png" alt="Julia Fleckenstein" style="width:200px" class="drop-corners">
+<img src="{{site.baseurl}}images/team-jf.jpg" alt="Julia Fleckenstein" style="width:200px" class="drop-corners">
 
 #### Kathrin Dörfler
 <img src="{{site.baseurl}}images/team-kd.png" alt="Kathrin Dörfler" style="width:200px" class="drop-corners">
