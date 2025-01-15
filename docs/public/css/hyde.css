@@ -56,15 +56,19 @@ html {
 .sidebar {
   text-align: center;
   padding: 2rem 1rem;
+  background-color: #c28484; /* Background color for mobile devices */
 }
 @media (min-width: 48em) {
   .sidebar {
     position: fixed;
     top: 0;
     left: 0;
+    transform: translateY(-50%);
     bottom: 0;
     width: 18rem;
     text-align: left;
+    background-color: #c28484; /* Background color for wider viewports */
+
   }
 }
 
@@ -78,12 +82,12 @@ html {
   color: white;
   margin-top: 0;
   /* font-family: "Abril Fatface", serif;*/
-  font-size: 2.25rem;
+  font-size: 3rem;
 }
 
 /* Sidebar nav */
 .sidebar-nav {
-  margin-bottom: 1rem;
+  margin-bottom: 5rem;
 }
 .sidebar-nav-item {
   display: block;
@@ -96,7 +100,7 @@ a.sidebar-nav-item:focus {
 .sidebar-nav-item.active {
   /*font-weight: bold;*/
   text-decoration: none;
-  color: rgb(255, 208, 0);
+  color: rgb(180, 88, 88);
 }
 
 /* Sticky sidebar
@@ -269,29 +273,29 @@ img.drop-corners-left {
 
 /* Magenta */
 .theme-base-0e .sidebar a{
-  color: rgb(255 238 98);
+  color: rgb(255, 230, 10);
   text-decoration: none;
 }
 .theme-base-0e .sidebar a:hover{
-  color: rgb(255 238 98);
-  text-decoration: line-through;
+  color: rgb(41, 41, 41);
+  text-decoration: underline;
 }
 .theme-base-0e .sidebar a:active{
   color: rgb(255 238 98);
-  text-decoration: line-through;
+  text-decoration: underline;
 }
 
 .theme-base-0e .content a{
-  color: rgb(255 238 98);
+  color: rgb(167, 89, 89);
   text-decoration: none;
 }
 .theme-base-0e .related-posts li a:hover{
   color: rgb(255 238 98);
-  text-decoration: line-through;
+  text-decoration: underline;
 }
 .theme-base-0e .related-posts li a:active{
   color: rgb(255 238 98);
-  text-decoration: line-through;
+  text-decoration: underline;
 }
 
 

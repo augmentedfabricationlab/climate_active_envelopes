@@ -3,7 +3,6 @@ layout: page
 title: Getting Started
 ---
 
-# Installation to run the design configurator
 
 **Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
@@ -20,7 +19,6 @@ title: Getting Started
 
 * [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
 
-## Getting Started
 
 ### 1. Setting up the Anaconda environment with all dependencies
 

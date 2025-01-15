@@ -7,9 +7,9 @@ permalink:        pretty
 #relative_permalinks: true
 
 # Setup
-title:           Climate-Active Envelopes
-tagline:          'Climate-Active Envelopes'
-description:      'Design Configurator for Climate-Active Envelopes'
+title:           Climate Active Envelopes
+tagline:          'Climate Active Envelopes'
+description:      'Design Configurator for Brickwork'
 baseurl: "/climate_active_envelopes/" # the subpath of your site, e.g. /blog
 url: "https://augmentedfabricationlab.github.io/climate_active_envelopes/" # the base hostname & protocol for your site, e.g. http://example.com
 
