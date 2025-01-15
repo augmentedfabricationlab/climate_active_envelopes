@@ -81,7 +81,8 @@ class CAEAssembly(Assembly):
 
 
     def generate_wall(self,
-                        bond,
+                        bond_type,
+                        wall_system,
                         brick_full,
                         brick_insulated,
                         plane,
@@ -93,8 +94,8 @@ class CAEAssembly(Assembly):
 
             Parameters
             ----------
-            bond : int
-                The bond pattern to use (0 for Flemish bond, 1 for Flemish bond 2)
+            bond_type : int
+                The bond pattern to use (0 for Flemish bond, ....)
             brick_full : :class:`CAEPart`
                 The full brick to use for the wall
             brick_insulated : :class:`CAEPart`
@@ -103,8 +104,6 @@ class CAEAssembly(Assembly):
                 The plane on which the wall is generated
             lines : list
                 The list of lines that define the wall
-            transform_type : str, optional
-                Type of transformation to apply ("translate" or "rotate").
             """
 
             brick_spacing = 0.015
@@ -139,10 +138,10 @@ class CAEAssembly(Assembly):
                     half_bricks = math.ceil(bricks_per_course / 2)
                     total_length += half_bricks * (brick_length + brick_spacing) + (bricks_per_course - half_bricks) * (brick_width + brick_spacing)
                     total_length += 2 * (brick_length/2)
-
-                #Pick the bond   
-                if bond == 0: #flemish bond
+  
+                if bond_type == 0: #flemish bond
                     self.generate_flemish_bond(
+                            wall_system=wall_system,
                             initial_brick_center = initial_brick_center,
                             bricks_per_course = bricks_per_course,
                             course_is_odd = course_is_odd,
@@ -159,7 +158,7 @@ class CAEAssembly(Assembly):
                         frame=None,
                         ): 
         """Create a brick with a specified type and add it to the assembly"""
-
+        
         if frame is None:
             frame = frame
 
@@ -191,7 +190,8 @@ class CAEAssembly(Assembly):
                     plane,
                     course_is_odd,
                     direction_vector,
-                    ):
+                    wall_system,
+                                        ):
         """
         Generate a Flemish bond pattern for the wall.
         
@@ -218,10 +218,10 @@ class CAEAssembly(Assembly):
         brick_spacing = 0.015
         mortar_joint_height = 0.015
         center_brick_frame = plane_to_compas_frame(plane)
-        brick_width_i, brick_length_i, brick_length, _, _ = self.get_brick_dimensions(brick_full, brick_insulated)
+        brick_width_i, brick_length_i, brick_length, brick_height, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
     
         params = {"brick_full": brick_full, 
-                  "brick_insulated": brick_insulated 
+                  "brick_insulated": brick_insulated,
                 }
 
         for brick in range(bricks_per_course):
@@ -229,13 +229,14 @@ class CAEAssembly(Assembly):
 
             # Shifting every second row
             if course_is_odd:
-                T += direction_vector * ((brick_length_i + brick_width_i + 3 * brick_spacing)/2 - 0.003)
+                T += direction_vector * ((brick_length_i + brick_width_i) / 2 + brick_spacing)
 
             brick_center = initial_brick_center + T
             brick_frame = Frame(point_to_compas(brick_center), direction_vector, center_brick_frame.yaxis)
 
             if not course_is_odd:
                 if brick % 2 != 0:
+                    # self-shading bricks - first row
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     T1 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
                     current_frame = brick_frame.transformed(R * T1)
@@ -243,32 +244,39 @@ class CAEAssembly(Assembly):
                 else:
                     self.add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
                     
-                    T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
-                    current_frame = brick_frame.transformed(T2)
-                    self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
-            
+                    if wall_system == "single_layered":
+                    # full bricks - second row
+                        T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                        current_frame = brick_frame.transformed(T2)
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+                    else:
+                        T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                        current_frame = brick_frame.transformed(T2)
+                        self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+
+
+
             if course_is_odd:
-                if brick == 0:  # Outer wall bricks
+                if brick == 0:  
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R)
-                    T3 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
-                    current_frame = current_frame.transformed(T3)
-                    T4 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
-                    current_frame = current_frame.transformed(T4)
+                    T3 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing) / 2))
+                    T4 = Translation.from_vector(current_frame.yaxis * ((3 * brick_length_i + brick_width_i + 6 * brick_spacing) / 4))
+                    current_frame = current_frame.transformed(T3 * T4)
                     self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
 
                 if brick >= 0 and brick < bricks_per_course - 1:
                     if brick % 2 != 0:                
-                        # self-shading bricks - first layer
+                        # self-shading bricks - first row
                         R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                         T5 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
                         current_frame = brick_frame.transformed(R * T5)
                         self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
-
                     else:
-                        # bricks - first layer - solid
                         self.add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
 
+                        # full bricks - second row
                         T6 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                         current_frame = brick_frame.transformed(T6)
                         self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
@@ -277,9 +285,8 @@ class CAEAssembly(Assembly):
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R)
                     T7 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
-                    current_frame = current_frame.transformed(T7)
                     T8 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
-                    current_frame = current_frame.transformed(T8)
+                    current_frame = current_frame.transformed(T7 * T8)
                     self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
 
     def apply_gradient(self, values, keys, transform_type):
@@ -326,7 +333,8 @@ class CAEAssembly(Assembly):
                 translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                 T = R * Translation.from_vector(translation_vector)
             
-            # else:
-            #     T = Transformation()
+            else:
+                T = Transformation()
+            
 
             part.transform(T)
