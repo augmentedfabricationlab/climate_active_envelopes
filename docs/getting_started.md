@@ -4,7 +4,7 @@ title: Getting Started
 ---
 
 
-**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+**Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html) [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) [EPW Maps](https://www.ladybug.tools/epwmap/)
 
 ## Requirements
 
@@ -13,18 +13,16 @@ title: Getting Started
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
-* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
 ## Dependencies
 
 * [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model)
 
-
-### 1. Setting up the Anaconda environment with all dependencies
+### 1. Setting up the Anaconda environment
 
 Execute the commands below in Anaconda Prompt:
 
-#### Install Compas and Compas Fab
+#### Install Compas
 
     (base) conda create -n cae -c conda-forge compas_fab
     (base) conda activate cae
@@ -34,7 +32,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) python -m compas
             Yay! COMPAS is installed correctly!
 
-#### Install compas, compas_fab and compas_rrc using the file path of the Rhino 8 Python executable
+#### Install compas using the file path of the Rhino 8 Python executable
 
 Find the Rhino 8 Python executable by running the following in a terminal or command prompt:
 
@@ -48,7 +46,11 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
     
     (cae) your_py39-rh8_path -m pip install compas compas_fab
     
-    
+#### Install Ladybug Tools to run the climate simulation
+To get the latest Ladybug Tools and its simulations download and install:
+* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
+
 ### 2. Cloning and installing the repositories
 
 #### Repository Cloning
@@ -58,12 +60,6 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
 #### Make the Assembly Information Model accessible in Rhino 8
 
     (cae) your_py39-rh8_path -m pip install your_filepath_to_assembly_information_model  
-
-### 3. Install Ladybug Tools for climatic simulations
-To get the latest Ladybug Tools and its simulations download and install:
-* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
-* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) 
-* [EPW Maps](https://www.ladybug.tools/epwmap/)
 
 
 **Voilà! You can now go to VS Code, Rhino or Grasshopper to run the example files!**
