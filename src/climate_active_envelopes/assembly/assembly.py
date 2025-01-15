@@ -79,6 +79,83 @@ class CAEAssembly(Assembly):
         self.add_part(transformed_brick, attr_dict={"brick_type": brick_type, "fixed": fixed})
 
 
+    def generate_cross_bond(self,
+                            brick_geometry,
+                            brick_insulated,
+                            initial_brick_center,
+                            line_length,              # Added line_length instead of num_bricks. I think number of bricks will have to be calculated seperately for each bond
+                            plane,
+                            course_is_odd):
+        """
+        Generates a Cross Bond pattern of bricks.
+
+        Parameters:
+        - brick_geometry: Geometry of the brick.
+        - brick_insulated: Insulated brick geometry.
+        - initial_brick_center: Starting center point for brick placement (COMPAS Point).
+        - num_bricks: Number of bricks in the course.
+        - plane: Reference plane for brick placement.
+        - course_is_odd: Boolean indicating if the course is odd.
+        """
+        brick_spacing = 0.015
+        brick_width = brick_geometry.shape.xsize
+        brick_length = brick_geometry.shape.ysize
+
+        params = {
+            "brick_geometry": brick_geometry, 
+            "brick_insulated": brick_insulated
+        }
+        
+        center_frame = plane_to_compas_frame(plane)
+
+        if course_is_odd:
+            num_bricks = math.floor(line_length / (brick_width+brick_spacing))
+            # Odd courses: Bricks laid with the long side facing out
+            for i in range(num_bricks):
+                # Calculate translation vector for the current brick
+                T = plane.XAxis * -(i * (((brick_width+ brick_spacing)/2)))
+                translation = Translation.from_vector(T)
+                
+                # Apply translation to the initial brick center
+                brick_center = initial_brick_center + T
+                brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
+                
+                # Transform the frame with translation
+                current_frame = brick_frame.transformed(translation)
+                
+                # Add the brick to the assembly
+                self.add_to_assembly(brick_type="full", fixed=False, frame=current_frame, **params)
+                        
+        elif not course_is_odd:
+            num_bricks = math.floor(line_length / (brick_length+brick_spacing))
+            # Even courses: Bricks laid with the short side facing out (rotated by 90 degrees)
+            for i in range(num_bricks):
+                # Calculate translation vector based on brick length
+                T = plane.XAxis * -(i * (((brick_length+brick_spacing)/2)))
+                T1 = plane.YAxis * ((brick_width-brick_length)/2)
+                
+                translation = Translation.from_vector(T)
+                Translation2 = Translation.from_vector(T1)
+                
+                # Create the initial brick frame
+                brick_center = initial_brick_center + T
+                brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
+                
+                # Create a rotation transformation (90 degrees around Z-axis)
+                R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                
+                # Apply rotation
+                rotated_frame = brick_frame.transformed(R)
+                
+                # Apply translation to the rotated frame
+                current_frame = rotated_frame.transformed(translation*Translation2)
+                
+                # Add the rotated brick to the assembly
+                if i % 2 == 0:
+                    self.add_to_assembly(brick_type="full", fixed=False, frame=current_frame, **params)
+                else: 
+                    self.add_to_assembly(brick_type="full", fixed=True, frame=current_frame, **params)
+  
 
     def generate_flemish_bond(self,
                                 brick_geometry,
@@ -378,6 +455,13 @@ class CAEAssembly(Assembly):
                 self.generate_other_bond_archive(
                         initial_brick_center = initial_brick_center,
                         num_bricks = num_bricks,
+                        course_is_odd = course_is_odd,
+                        **params) 
+                
+            if bond == 3:
+                self.generate_cross_bond(
+                        initial_brick_center = initial_brick_center,
+                        line_length= line_length,
                         course_is_odd = course_is_odd,
                         **params) 
                 
