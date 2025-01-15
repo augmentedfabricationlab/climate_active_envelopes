@@ -148,14 +148,7 @@ class CAEAssembly(Assembly):
                             course_is_odd = course_is_odd,
                             direction_vector=direction_vector,
                             **params) 
-                        
-                if bond == 1: #flemish bond 2
-                    self.generate_flemish_bond_2(
-                            initial_brick_center = initial_brick_center,
-                            bricks_per_course = bricks_per_course,
-                            course_is_odd = course_is_odd,
-                            direction_vector=direction_vector,
-                            **params)             
+                                
             return total_length
 
     def add_to_assembly(self,
