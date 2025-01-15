@@ -53,7 +53,7 @@ Then you can pip install using the file path of the Rhino 8 Python executable:
 
 #### Repository Cloning
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
-* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) and the [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
+* Open Github Desktop and clone [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes.git)) and the [Assembly Information Model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
 
 #### Make the Assembly Information Model accessible in Rhino 8
 
