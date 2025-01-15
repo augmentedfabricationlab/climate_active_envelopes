@@ -17,3 +17,8 @@ Investigating the relationship between geometry, digital fabrication, and enviro
 
 ### Development of a computational design tool
 Creating a digital platform that enables designers to generate site-specific solutions based on climate-active design criteria. This tool will integrate climate simulation, material properties, and fabrication constraints to inform the design process.
+
+<figure>
+  <img src="{{site.baseurl}}images/cae-configurator.png" alt="Input parameters to inform the design configurator." style="width:75%" class="center">
+  <figcaption>Image: Input parameters to inform the design configurator.</figcaption>
+</figure>
