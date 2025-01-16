@@ -217,75 +217,146 @@ class CAEAssembly(Assembly):
             The direction vector of the line
         transform_type : str, optional
             Type of transformation to apply ("translate" or "rotate").
+        wall_system : str
+            The type of wall system to generate ("single_layer" or "double_layer").
         """
         
         brick_spacing = 0.015
         mortar_joint_height = 0.015
         center_brick_frame = plane_to_compas_frame(plane)
-        brick_width_i, brick_length_i, brick_length, _, _ = self.get_brick_dimensions(brick_full, brick_insulated)
+        brick_width_i, brick_length_i, brick_length, brick_height, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
     
         params = {"brick_full": brick_full, 
                   "brick_insulated": brick_insulated 
                 }
 
+        shift_vector = direction_vector * ((brick_length + brick_width)/2 + brick_spacing + 0.005)
+        
         for brick in range(bricks_per_course):
             T = direction_vector * (brick * ((brick_length_i + brick_width_i)/2 + mortar_joint_height))
 
             # Shifting every second row
             if course_is_odd:
-                T += direction_vector * ((brick_length_i + brick_width_i + 3 * brick_spacing)/2 - 0.003)
+                T += shift_vector
 
             brick_center = initial_brick_center + T
             brick_frame = Frame(point_to_compas(brick_center), direction_vector, center_brick_frame.yaxis)
 
             if not course_is_odd:
-                if brick % 2 != 0:
-                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                if brick % 2 != 0: #brick is odd
+                    # first row - self-shading bricks 
+                    R1 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     T1 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
-                    current_frame = brick_frame.transformed(R * T1)
+                    current_frame = brick_frame.transformed(R1*T1)
                     self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
-                else:
+
+                    # second row - insulated bricks
+                    T2 = Translation.from_vector(current_frame.xaxis * (brick_width_i + brick_spacing))
+                    copy_current_frame = current_frame.transformed(T2)
+                    if wall_system == "double_layer":
+                        self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = copy_current_frame, **params) 
+                    
+                else: #brick is even
+                    # first row - self-shading bricks 
                     self.add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
                     
+                    # second row - full bricks
                     if wall_system == "single_layer":
-                        T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
-                        current_frame = brick_frame.transformed(T2)
+                        T3 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                        current_frame = brick_frame.transformed(T3)
                         self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
-                
+
+                    # second row - insulated bricks
+                    if wall_system == "double_layer":
+                        # last brick in the row
+                        T4 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_width + 2 * brick_spacing))
+                        current_frame = brick_frame.transformed(T4)
+                        self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params) 
+
+                        # middle bricks in the row
+                        R2 = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), point=current_frame.point)
+                        T5 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_spacing)/2)
+                        current_frame = current_frame.transformed(R2 * T5)
+                        T6 = Translation.from_vector(current_frame.xaxis * - ((brick_width_i + brick_length_i)/2 + brick_spacing))
+                        current_frame = current_frame.transformed(T6)
+                        self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
+
+                        T7 = Translation.from_vector(current_frame.yaxis * -(brick_width/2 + brick_spacing))
+                        current_frame = current_frame.transformed(T7)
+                        self.add_to_assembly( brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
+
             if course_is_odd:
-                if brick == 0:  # Outer wall bricks
-                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
-                    current_frame = brick_frame.transformed(R)
-                    T3 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
-                    current_frame = current_frame.transformed(T3)
-                    T4 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
-                    current_frame = current_frame.transformed(T4)
+                if brick == 0: # first self_shading brick
+                    R3 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R3)
+                    T8 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T8)
+                    T9 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    current_frame = current_frame.transformed(T9)
                     self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
 
-                if brick >= 0 and brick < bricks_per_course - 1:
-                    if brick % 2 != 0:                
-                        # self-shading bricks - first layer
-                        R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
-                        T5 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
-                        current_frame = brick_frame.transformed(R * T5)
-                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
+                    if wall_system == "double_layer":
+                        # first insulated brick
+                        T10 = Translation.from_vector(current_frame.xaxis *((brick_width_i+brick_spacing)))
+                        current_frame = current_frame.transformed(T10)
+                        self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame, **params) 
+
+
+                if brick >= 0 and brick < bricks_per_course - 1: 
+                    if brick % 2 != 0: #brick is even               
+                        # first row - self-shading bricks
+                        R4 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                        T11 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
+                        current_frame = brick_frame.transformed(R4 * T11)
+                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+
+                        # second row - insulated bricks
+                        T12 = Translation.from_vector(current_frame.xaxis * (brick_width_i + brick_spacing))
+                        copy_current_frame = current_frame.transformed(T12)
+                        if wall_system == "double_layer":                        
+                            self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = copy_current_frame, **params)
 
                     else:
-                        # bricks - first layer - solid
+                        # first row - self-shading bricks
                         self.add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
 
-                        T6 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
-                        current_frame = brick_frame.transformed(T6)
-                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                        if wall_system == "single_layer":
+                            T13 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                            current_frame = brick_frame.transformed(T13)
+                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
 
-                elif brick == bricks_per_course - 1:
-                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
-                    current_frame = brick_frame.transformed(R)
-                    T7 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
-                    current_frame = current_frame.transformed(T7)
-                    T8 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
-                    current_frame = current_frame.transformed(T8)
+                        if wall_system == "double_layer":
+                            # last brick in the row
+                            T14 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_width + 2 * brick_spacing))
+                            current_frame = brick_frame.transformed(T14)
+                            self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params) 
+
+                            # middle bricks in the row
+                            R5 = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), point=current_frame.point)
+                            T15 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_spacing)/2)
+                            current_frame = current_frame.transformed(R5 * T15)
+                            T16 = Translation.from_vector(current_frame.xaxis * - ((brick_width_i + brick_length_i)/2 + brick_spacing))
+                            current_frame = current_frame.transformed(T16)
+                            self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
+
+                            T17 = Translation.from_vector(current_frame.yaxis * -(brick_width/2 + brick_spacing))
+                            current_frame = current_frame.transformed(T17)
+                            self.add_to_assembly( brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
+
+                elif brick == bricks_per_course - 1: # last self-shading brick
+                    R6 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
+                    current_frame = brick_frame.transformed(R6)
+                    T18 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
+                    current_frame = current_frame.transformed(T18)
+                    T19 = Translation.from_vector(current_frame.yaxis * - (brick_length_i/2)/2)
+                    current_frame = current_frame.transformed(T19)
                     self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+
+                    if wall_system == "double_layer":
+                        # last insulated brick
+                        T20 = Translation.from_vector(current_frame.xaxis *((brick_width_i+brick_spacing)))
+                        current_frame = current_frame.transformed(T20)
+                        self.add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame, **params)
 
     def apply_gradient(self, values, keys, transform_type):
         """
