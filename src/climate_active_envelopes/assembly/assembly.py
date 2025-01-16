@@ -82,6 +82,7 @@ class CAEAssembly(Assembly):
 
     def generate_wall(self,
                         bond,
+                        wallsystem,
                         brick_full,
                         brick_insulated,
                         plane,
@@ -147,7 +148,9 @@ class CAEAssembly(Assembly):
                             bricks_per_course = bricks_per_course,
                             course_is_odd = course_is_odd,
                             direction_vector=direction_vector,
+                            wall_system=wallsystem,
                             **params) 
+                    
                                 
             return total_length
 
@@ -191,6 +194,7 @@ class CAEAssembly(Assembly):
                     plane,
                     course_is_odd,
                     direction_vector,
+                    wall_system,
                     ):
         """
         Generate a Flemish bond pattern for the wall.
@@ -243,10 +247,11 @@ class CAEAssembly(Assembly):
                 else:
                     self.add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
                     
-                    T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
-                    current_frame = brick_frame.transformed(T2)
-                    self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
-            
+                    if wall_system == "single_layer":
+                        T2 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                        current_frame = brick_frame.transformed(T2)
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                
             if course_is_odd:
                 if brick == 0:  # Outer wall bricks
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
