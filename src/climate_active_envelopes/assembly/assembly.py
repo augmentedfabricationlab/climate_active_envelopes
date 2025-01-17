@@ -97,48 +97,60 @@ class CAEAssembly(Assembly):
         }
         
         center_frame = plane_to_compas_frame(plane)
-        num_bricks = math.floor(line_length / (((brick_width+2*brick_length + 3*brick_spacing))/3))
-        if course_is_odd:
-            for i in range(num_bricks):
-                if i % 3 == 0:
-                    T = plane.XAxis * -(i * (((brick_width+ brick_spacing)/2)))
-                    translation = Translation.from_vector(T)
-                    
-                    # Apply translation to the initial brick center
-                    brick_center = initial_brick_center + T
-                    brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
-                    
-                    # Transform the frame with translation
-                    current_frame = brick_frame.transformed(translation)
-                    # Add the brick to the assembly
-                    self.add_to_assembly(brick_type="full", fixed=True, frame=current_frame, **params)
-                else:
-                                    # Calculate translation vector based on brick length
-                    T = plane.XAxis * -(i * (((brick_length+brick_spacing)/2)))
-                    T1 = plane.YAxis * ((brick_width-brick_length)/2)
-                    
-                    translation = Translation.from_vector(T)
-                    Translation2 = Translation.from_vector(T1)
-                    
-                    # Create the initial brick frame
-                    brick_center = initial_brick_center + T
-                    brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
-                    
-                    # Create a rotation transformation (90 degrees around Z-axis)
-                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
-                    
-                    # Apply rotation
-                    rotated_frame = brick_frame.transformed(R)
-                    
-                    # Apply translation to the rotated frame
-                    current_frame = rotated_frame.transformed(translation*Translation2)
-                    
-                    # Add the rotated brick to the assembly
+        num_bricks1 = math.floor(line_length / (((brick_width+2*brick_length) + 3*brick_spacing)))
 
-                    self.add_to_assembly(brick_type="full", fixed=False, frame=current_frame, **params)
+        for i in range(num_bricks1):
+            T = plane.XAxis * -(i*(2*(brick_spacing+brick_length)))
+            translation = Translation.from_vector(T)
+            
+            # Apply translation to the initial brick center
+            brick_center = initial_brick_center + T
+            brick_frame = Frame(point_to_compas(brick_center), center_frame.xaxis, center_frame.yaxis)
+            
+            # Transform the frame with translation
+            current_frame = brick_frame.transformed(translation)
+            # Add the brick to the assembly
+            if course_is_odd:
+                self.add_to_assembly(brick_type="full", fixed=False, frame=current_frame, **params)
+            else:
+                T = plane.XAxis * -((((brick_length+brick_spacing+brick_width)/2)))
+                translation = Translation.from_vector(T)
+                current_frame = current_frame.transformed(translation)
+                self.add_to_assembly(brick_type="full", fixed=False, frame=current_frame, **params)
 
+            
+            T = plane.XAxis * -((((brick_length+brick_spacing)*1.5)))
+            T2 = plane.XAxis * -(i*(((2*(brick_length+brick_spacing)))))
+            T1 = plane.YAxis * ((brick_width-brick_length)/2)
+            
+            translation = Translation.from_vector(T)
+            Translation2 = Translation.from_vector(T1)
+            Translation3 = Translation.from_vector(T2)
+            
+            # Create a rotation transformation (90 degrees around Z-axis)
+            R = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), brick_frame.point)
+            
+            # Apply rotation
+            rotated_frame = brick_frame.transformed(R)
+            
+            # Apply translation to the rotated frame
+            current_frame = rotated_frame.transformed(translation*Translation2*Translation3)
+            
+            # Add the rotated brick to the assembly
+            if course_is_odd:
+                self.add_to_assembly(brick_type="full", fixed=True, frame=current_frame, **params)
+            else:
+                T = plane.XAxis * -((((brick_length+brick_spacing+brick_width)/2)))
+                translation = Translation.from_vector(T)
+                current_frame = current_frame.transformed(translation)
+                self.add_to_assembly(brick_type="full", fixed=True, frame=current_frame, **params)
 
-       
+            T = plane.XAxis * -((((brick_length+brick_spacing))))
+            translation = Translation.from_vector(T)
+
+            current_frame = current_frame.transformed(translation)
+
+            self.add_to_assembly(brick_type="full", fixed=True, frame=current_frame, **params)
 
 
 
