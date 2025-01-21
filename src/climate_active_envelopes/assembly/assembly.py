@@ -81,7 +81,7 @@ class CAEAssembly(Assembly):
 
 
     def generate_wall(self,
-                        bond,
+                        bond_type,
                         wallsystem,
                         brick_full,
                         brick_insulated,
@@ -142,7 +142,7 @@ class CAEAssembly(Assembly):
                     total_length += 2 * (brick_length/2)
 
                 #Pick the bond   
-                if bond == 0: #flemish bond
+                if bond_type == "flemish_bond": #flemish bond
                     self.generate_flemish_bond(
                             initial_brick_center = initial_brick_center,
                             bricks_per_course = bricks_per_course,
