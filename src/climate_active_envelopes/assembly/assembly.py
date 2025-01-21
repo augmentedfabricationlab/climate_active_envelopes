@@ -142,7 +142,7 @@ class CAEAssembly(Assembly):
                     total_length += 2 * (brick_length/2)
 
                 #Pick the bond   
-                if bond == 0: #flemish bond
+                if bond == "flemish_bond": #flemish bond
                     self.generate_flemish_bond(
                             initial_brick_center = initial_brick_center,
                             bricks_per_course = bricks_per_course,
@@ -163,6 +163,8 @@ class CAEAssembly(Assembly):
                         ): 
         """Create a brick with a specified type and add it to the assembly"""
 
+        _, _, _, brick_height, _ = self.get_brick_dimensions(brick_full, brick_insulated)
+
         if frame is None:
             frame = frame
 
@@ -173,9 +175,6 @@ class CAEAssembly(Assembly):
             brick = brick_insulated
             
         my_brick = brick.transformed(Transformation.from_frame(frame))
-
-        #brick_height is the same for "full" and "insulated" bricks
-        brick_height = brick_full.shape.zsize 
 
         # Adjust the gripping frame by translating it along the z-axis to account for the brick height
         gripping_frame = frame.transformed(Translation.from_vector(frame.zaxis*((brick_height-0.020)/2)))
