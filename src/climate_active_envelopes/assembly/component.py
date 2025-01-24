@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import json
 import math as m
+
 #from compas_fab.robots import JointTrajectoryPoint
 
 from compas.datastructures import Mesh
@@ -39,61 +40,29 @@ class CAEComponent(object):
         self.frame = frame #origin frame
 
 
-
-    def from_box(self, box):
-        """Initialize the component from a box."""
-        self._source = box
-        self._frame = box.frame
-        self._mesh = box.to_mesh()
-        self.faces = box.faces()
-        self.vertices = box.vertices()
-
+    
     @classmethod
-    def from_box(cls, box):
-        """Construct a cell from a box primitive.
-
-        Parameters
-        ----------
-        box : :class:`compas.geometry.Box`
-            Box primitive describing the element.
-
-        Returns
-        -------
-        :class:`Cell`
-            New instance of cell.
-        """
-        return cls.from_shape(box, box.frame)
-
-    @classmethod
-    def from_shape(cls, shape, frame):
-        """Construct a cell from a shape primitive.
+    def from_shape(cls, shape, frame=None):
+        """Construct a component from a shape primitive.
 
         Parameters
         ----------
         shape : :class:`compas.geometry.Shape`
-            Shape primitive describing the cell.
+            Shape primitive describing the component.
         frame : :class:`Frame`
-            Origin frame of the cell.
+            Origin frame of the component.
 
         Returns
         -------
-        :class:`Cell`
-            New instance of cell.
+        :class:`Component`
+            New instance of the component.
         """
-        cell = cls(frame)
-        cell._source = shape
-        cell._mesh = Mesh.from_shape(cell._source)
-        return cell
+        vertex = shape.vertex[0]
+        frame = Frame([vertex['x'], vertex['y'], vertex['z']], [1, 0, 0], [0, 1, 0])
+        component = cls(frame)
+        component._source = shape
+        component._mesh = Mesh.from_shape(component._source)
+        component.vertices, component.faces = component._mesh.to_vertices_and_faces()  
+        component.faces = [sorted(face) for face in component.faces]
 
-
-    def detect_connections(self):
-        """Detect connections between the faces of the box."""
-        connections = []
-        for i, face1 in enumerate(self.faces):
-            for j, face2 in enumerate(self.faces):
-                if i >= j:
-                    continue
-                shared_vertices = set(face1).intersection(set(face2))
-                if len(shared_vertices) >= 2:
-                    connections.append((i, j))
-        return connections
+        return component
