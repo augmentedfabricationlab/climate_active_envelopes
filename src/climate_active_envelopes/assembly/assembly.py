@@ -185,7 +185,7 @@ class CAEAssembly(Assembly):
         }
         
         center_frame = plane_to_compas_frame(plane)
-        ornament = 1
+        ornament = 0
 
         if course_is_odd:
             num_bricks1 = math.floor(line_length / (brick_width+brick_spacing))
