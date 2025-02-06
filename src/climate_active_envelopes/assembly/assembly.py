@@ -151,6 +151,15 @@ class CAEAssembly(Assembly):
                             wall_system=wallsystem,
                             **params) 
                     
+                if bond_type == "cross_bond": #flemish bond
+                    self.generate_cross_bond(
+                            initial_brick_center = initial_brick_center,
+                            line_length= line_length,
+                            course_is_odd = course_is_odd,
+                            j=j,
+                            wall_system=wallsystem,
+                            **params) 
+                    
                                 
             return total_length
 
@@ -185,6 +194,167 @@ class CAEAssembly(Assembly):
         my_brick.gripping_frame = gripping_frame
 
         self.add_part(my_brick, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
+
+
+    def generate_cross_bond(self,
+                            brick_full,
+                            brick_insulated,
+                            initial_brick_center,
+                            line_length,          
+                            plane,
+                            course_is_odd,
+                            j,
+                            wall_system):
+        """
+        Generates a Cross Bond pattern of bricks.
+
+        Parameters
+        ----------
+        brick_full : :class:`CAEPart`
+            The full brick to use for the wall.
+        brick_insulated : :class:`CAEPart`
+            The insulated brick to use for the wall.
+        initial_brick_center : :class:`compas.geometry.Point`
+            Starting center point for brick placement.
+        line_length : float
+            The length of the wall (the line along which bricks are laid).
+        plane : :class:`compas.geometry.Plane`
+            The reference plane for brick placement.
+        course_is_odd : bool
+            Boolean indicating if the course is odd.
+        j : int
+            Course index (used here for pattern ornamentation).
+        wall_system : str
+            The type of wall system to generate ("single_layer" or "double_layer").
+        """
+        
+        brick_spacing = 0.015
+        mortar_joint_height = 0.015
+        brick_width_i, brick_length_i, brick_length, brick_height, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+      
+        params = {"brick_full": brick_full, 
+                  "brick_insulated": brick_insulated 
+                }
+
+        
+        center_brick_frame = plane_to_compas_frame(plane)
+        ornament = 0
+
+        if course_is_odd:
+            num_bricks1 = math.floor(line_length / (brick_width+brick_spacing))
+            num_bricks2 = math.floor(line_length / (brick_length+brick_spacing))
+            # Odd courses: Bricks laid with the long side facing out
+            for i in range(num_bricks1):
+                # Calculate translation vector for the current brick
+                T = plane.XAxis * -(i * (((brick_width+ brick_spacing)/2)))
+                translation = Translation.from_vector(T)
+                
+                # Apply translation to the initial brick center
+                brick_center = initial_brick_center + T
+                brick_frame = Frame(point_to_compas(brick_center), center_brick_frame.xaxis, center_brick_frame.yaxis)
+                
+                # Transform the frame with translation
+                current_frame = brick_frame.transformed(translation)
+                # Add the brick to the assembly
+                if wall_system == "single_layer":
+                    if ornament == 0 or ornament ==1:
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+                T1 = plane.YAxis * ((brick_width+ brick_length + (2*brick_spacing)))
+                T2 = plane.XAxis * -((brick_length + brick_spacing)/2)
+                translation1 = Translation.from_vector(T1)
+                translation2 = Translation.from_vector(T2)
+                current_frame = current_frame.transformed(translation1*translation2)
+                if wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+
+
+
+
+            for i in range(num_bricks2):
+                T = plane.XAxis * -(i * (((brick_length+brick_spacing)/2)))
+                T1 = plane.YAxis * (((brick_width-brick_length)/2)+ (brick_length+brick_spacing))
+                
+                translation = Translation.from_vector(T)
+                Translation2 = Translation.from_vector(T1)
+                
+                # Create the initial brick frame
+                brick_center = initial_brick_center + T
+                brick_frame = Frame(point_to_compas(brick_center), center_brick_frame.xaxis, center_brick_frame.yaxis)
+                
+                # Create a rotation transformation (90 degrees around Z-axis)
+                R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                
+                # Apply rotation
+                rotated_frame = brick_frame.transformed(R)
+                
+                # Apply translation to the rotated frame
+                current_frame = rotated_frame.transformed(translation*Translation2)
+                
+    
+                if wall_system == "double_layer":
+                   self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+
+
+
+                        
+        elif not course_is_odd:
+            num_bricks = math.floor(line_length / (brick_length+brick_spacing))
+            # Even courses: Bricks laid with the short side facing out (rotated by 90 degrees)
+            for i in range(num_bricks):
+                # Calculate translation vector based on brick length
+                T = plane.XAxis * -(i * (((brick_length+brick_spacing)/2)))
+                T1 = plane.YAxis * ((brick_width-brick_length)/2)
+                
+                translation = Translation.from_vector(T)
+                Translation2 = Translation.from_vector(T1)
+                
+                # Create the initial brick frame
+                brick_center = initial_brick_center + T
+                brick_frame = Frame(point_to_compas(brick_center), center_brick_frame.xaxis, center_brick_frame.yaxis)
+                
+                # Create a rotation transformation (90 degrees around Z-axis)
+                R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                
+                # Apply rotation
+                rotated_frame = brick_frame.transformed(R)
+                
+                # Apply translation to the rotated frame
+                current_frame = rotated_frame.transformed(translation*Translation2)
+                
+                # Add the rotated brick to the assembly
+  
+                if wall_system == "single_layer":
+                    if ornament == 0: 
+                        if i % 2 == 0 and j% 4 == 0:
+                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                        elif i % 2 != 0 and j% 4 != 0:
+                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                        else:
+                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+                    if ornament == 1: 
+                        if i % 2 == 0:
+                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                        else:
+                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+
+                    if ornament == 2: 
+                        if i % 2 == 0:
+                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                        else:
+                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+
+                T2 = plane.YAxis * (brick_width+ brick_spacing)
+                T3 = plane.XAxis * ((brick_length+brick_spacing)/2)
+                Translation3 = Translation.from_vector(T2)
+                Translation4= Translation.from_vector(T3)
+                current_frame = current_frame.transformed(Translation3 * Translation4)
+                if wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+  
 
     def generate_flemish_bond(self,
                     brick_full,

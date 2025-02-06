@@ -38,7 +38,7 @@
             <item name="Date" type_name="gh_date" type_code="8">638433577049618084</item>
             <item name="Description" type_name="gh_string" type_code="10"></item>
             <item name="KeepOpen" type_name="gh_bool" type_code="1">false</item>
-            <item name="Name" type_name="gh_string" type_code="10">assembly_design.ghx</item>
+            <item name="Name" type_name="gh_string" type_code="10">250205_assembly_design.ghx</item>
           </items>
           <chunks count="3">
             <chunk name="Revisions">
