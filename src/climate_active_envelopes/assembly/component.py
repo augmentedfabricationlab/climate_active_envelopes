@@ -131,7 +131,7 @@ class CAEComponent():
             edge_type = 'beam'
 
         cell_network.edge_attribute(selected_edge, 'edge_type', edge_type)
-        print(f"Selected edge is a {edge_type} for key {edge_key}: {selected_edge}")
+        print(f"Selected edge is a {edge_type}  for key {edge_key}: {selected_edge}")
         return selected_edge, edge_type
 
 
@@ -211,3 +211,128 @@ class CAEComponent():
         sorted_edges[edge_type].append(selected_edge)
 
         return sorted_faces, sorted_edges
+
+    @classmethod
+    def create_face_cell_dict(cls, cell_network):
+        """Sort faces to corresponding cells.
+
+        Parameters:
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+        
+        Returns
+        -------
+        dict
+            A dictionary with faces and corresponding cells.
+        """
+        
+        sort_faces_in_cells = []
+        for cell in cell_network.cells():
+            for face in cell_network.faces():
+                if face in cell_network._cell[cell]:
+                    sort_faces_in_cells.append((face, cell))
+
+        faces_to_cell_dict = {}
+        for face, cell in sort_faces_in_cells:
+            if face not in faces_to_cell_dict:
+                faces_to_cell_dict[face] = []
+            faces_to_cell_dict[face].append(cell)
+        
+        return faces_to_cell_dict
+
+    @classmethod
+    def sort_faces_by_type(cls, cell_network):
+        """Sort faces by building type.
+
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+        
+        Returns
+        -------
+        list
+            A list of faces sorted by type.
+        """
+
+        inner_walls = []
+        outer_walls = []
+        slabs = []
+
+        faces_to_cells_dict = cls.create_face_cell_dict(cell_network)
+
+        for face, cell in faces_to_cells_dict.items():
+            normal = cell_network.face_normal(face)
+
+            if len(cell) >= 2:  # face between minimum two cells and (normal[1] in [-1, 1] or normal[0] in [-1, 1])
+                face_type = 'inner wall'
+                inner_walls.append((face, cell))
+            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]: #face vertical and only part of one cell
+                face_type = 'outer wall'
+                outer_walls.append((face, cell))
+            elif normal[2] in [-1, 1]: #face horizontal
+                face_type = 'slab'
+                slabs.append((face, cell))
+            else:
+                continue
+
+            cell_network.face_attribute(face, 'face_type', face_type)
+
+       
+        all_faces = inner_walls + outer_walls + slabs
+        return all_faces
+
+    @classmethod
+    def select_face_by_fkey(cls, cell_network, face_key):
+        """Select the face by key from the cell network.
+
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.  
+        face_key : int
+            The key of the face to select.
+
+        Returns
+        -------
+        object
+            The selected face.
+        """
+
+        for key, face in enumerate(cell_network.faces()):
+            if key == face_key:
+                selected_face = face
+        #cell_network.face_attribute(selected_face, 'face_type')         # Get attribute of the selected face
+        return selected_face
+
+    @classmethod
+    def select_face_neighbors(cls, cell_network, face_key):
+        """Select the face neighbors of a face in the cell.
+        
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+            
+        Returns
+        -------
+        dict
+            A dictionary of face neighbors.
+        """
+        neighbor_face_types = []
+
+        for cell in cell_network.cells():
+            valid_faces = []
+            for key, face in enumerate(cell_network.faces()):
+                if key == face_key:
+                    if face in cell_network.cell_faces(cell):
+                        valid_faces.append(face)
+
+            for face in valid_faces:
+                neighbors = cell_network.cell_face_neighbors(cell, face)
+                for neighbor in neighbors:
+                    face_type = cell_network.face_attribute(neighbor, 'face_type')
+                    neighbor_face_types.append((neighbor, face_type))
+
+        return neighbor_face_types
