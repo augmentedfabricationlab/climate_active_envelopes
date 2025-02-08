@@ -151,14 +151,24 @@ class CAEAssembly(Assembly):
                             wall_system=wallsystem,
                             **params) 
                     
-                if bond_type == "cross_bond": #flemish bond
-                    self.generate_cross_bond(
+                if bond_type == "vertical_bond": #cross bond
+                    self.generate_vertical_bond(
                             initial_brick_center = initial_brick_center,
                             line_length= line_length,
                             course_is_odd = course_is_odd,
                             j=j,
+                            direction_vector = direction_vector,
                             wall_system=wallsystem,
                             **params) 
+                    
+                if bond_type == "french_bond": #french bond
+                    self.generate_french_bond(
+                        initial_brick_center = initial_brick_center,
+                        line_length= line_length,
+                        course_is_odd = course_is_odd,
+                        j=j,
+                        wall_system=wallsystem,
+                        **params)
                     
                                 
             return total_length
@@ -196,7 +206,106 @@ class CAEAssembly(Assembly):
         self.add_part(my_brick, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
 
 
-    def generate_cross_bond(self,
+    def generate_french_bond(self,
+                    brick_full,
+                    brick_insulated,
+                    initial_brick_center,
+                    line_length,          
+                    plane,
+                    course_is_odd,
+                    j,
+                    wall_system):
+
+        brick_spacing = 0.015
+        mortar_joint_height = 0.015
+        brick_width_i, brick_length_i, brick_length, brick_height, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+      
+        params = {"brick_full": brick_full, 
+                  "brick_insulated": brick_insulated 
+                }
+
+        
+        center_brick_frame = plane_to_compas_frame(plane)
+        num_bricks1 = math.floor(line_length / (((brick_width+2*brick_length) + 3*brick_spacing)))
+
+        for i in range(num_bricks1):
+            T = plane.XAxis * -(i*(2*(brick_spacing+brick_length)))
+            translation = Translation.from_vector(T)
+            
+            # Apply translation to the initial brick center
+            brick_center = initial_brick_center + T
+            brick_frame = Frame(point_to_compas(brick_center), center_brick_frame.xaxis, center_brick_frame.yaxis)
+            
+            # Transform the frame with translation
+            current_frame = brick_frame.transformed(translation)
+            # Add the brick to the assembly
+            if course_is_odd:
+                if wall_system == "single_layer" or wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+            else:
+                T = plane.XAxis * -((((brick_length+brick_spacing+brick_width)/2)))
+                translation = Translation.from_vector(T)
+                current_frame = current_frame.transformed(translation)
+                if wall_system == "single_layer" or wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+
+            
+            T = plane.XAxis * -((((brick_length+brick_spacing)*1.5)))
+            T2 = plane.XAxis * -(i*(((2*(brick_length+brick_spacing)))))
+            T1 = plane.YAxis * ((brick_width-brick_length)/2)
+            
+            translation = Translation.from_vector(T)
+            Translation2 = Translation.from_vector(T1)
+            Translation3 = Translation.from_vector(T2)
+            
+            # Create a rotation transformation (90 degrees around Z-axis)
+            R = Rotation.from_axis_and_angle(current_frame.zaxis, math.radians(90), brick_frame.point)
+            
+            # Apply rotation
+            rotated_frame = brick_frame.transformed(R)
+            
+            # Apply translation to the rotated frame
+            current_frame = rotated_frame.transformed(translation*Translation2*Translation3)
+            
+            # Add the rotated brick to the assembly
+            if course_is_odd:
+                if wall_system == "single_layer" or wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                    T = plane.XAxis * -((((brick_length+brick_spacing))))
+                    translation = Translation.from_vector(T)
+                    current_frame = current_frame.transformed(translation)
+                    if wall_system == "single_layer" or wall_system == "double_layer":
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+
+                if wall_system == "double_layer":
+                    T = plane.YAxis * (brick_spacing+brick_width)
+                    translation = Translation.from_vector(T)
+                    current_frame = current_frame.transformed(translation)
+                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+
+            else:
+                T = plane.XAxis * -((((brick_length+brick_spacing+brick_width)/2)))
+                translation = Translation.from_vector(T)
+                current_frame = current_frame.transformed(translation)
+                if wall_system == "single_layer" or wall_system == "double_layer":
+                    self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                    T = plane.XAxis * -((((brick_length+brick_spacing))))
+                    translation = Translation.from_vector(T)
+                    current_frame = current_frame.transformed(translation)
+                    if wall_system == "single_layer" or wall_system == "double_layer":
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                        
+                if wall_system == "double_layer":
+                    T = plane.YAxis * (brick_spacing+brick_width)
+                    translation = Translation.from_vector(T)
+                    current_frame = current_frame.transformed(translation)
+                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+
+
+
+     
+
+    def generate_vertical_bond(self,
                             brick_full,
                             brick_insulated,
                             initial_brick_center,
@@ -204,6 +313,7 @@ class CAEAssembly(Assembly):
                             plane,
                             course_is_odd,
                             j,
+                            direction_vector,
                             wall_system):
         """
         Generates a Cross Bond pattern of bricks.
@@ -238,13 +348,14 @@ class CAEAssembly(Assembly):
 
         
         center_brick_frame = plane_to_compas_frame(plane)
-        ornament = 0
+        ornament = "cross"  #name it
 
         if course_is_odd:
             num_bricks1 = math.floor(line_length / (brick_width+brick_spacing))
             num_bricks2 = math.floor(line_length / (brick_length+brick_spacing))
             # Odd courses: Bricks laid with the long side facing out
             for i in range(num_bricks1):
+
                 # Calculate translation vector for the current brick
                 T = plane.XAxis * -(i * (((brick_width+ brick_spacing)/2)))
                 translation = Translation.from_vector(T)
@@ -256,9 +367,8 @@ class CAEAssembly(Assembly):
                 # Transform the frame with translation
                 current_frame = brick_frame.transformed(translation)
                 # Add the brick to the assembly
-                if wall_system == "single_layer":
-                    if ornament == 0 or ornament ==1:
-                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                if ornament == "cross" or ornament =="straight":
+                    self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
 
                 T1 = plane.YAxis * ((brick_width+ brick_length + (2*brick_spacing)))
                 T2 = plane.XAxis * -((brick_length + brick_spacing)/2)
@@ -266,7 +376,7 @@ class CAEAssembly(Assembly):
                 translation2 = Translation.from_vector(T2)
                 current_frame = current_frame.transformed(translation1*translation2)
                 if wall_system == "double_layer":
-                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
+                    self.add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params) #maybe ornament can be here
 
 
 
@@ -324,27 +434,27 @@ class CAEAssembly(Assembly):
                 
                 # Add the rotated brick to the assembly
   
-                if wall_system == "single_layer":
-                    if ornament == 0: 
-                        if i % 2 == 0 and j% 4 == 0:
-                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
-                        elif i % 2 != 0 and j% 4 != 0:
-                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
-                        else:
-                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+    
+                if ornament == "cross": 
+                    if i % 2 == 0 and j% 4 == 0:
+                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                    elif i % 2 != 0 and j% 4 != 0:
+                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                    else:
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
 
-                    if ornament == 1: 
-                        if i % 2 == 0:
-                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
-                        else:
-                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                if ornament == "straight": 
+                    if i % 2 == 0:
+                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                    else:
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
 
 
-                    if ornament == 2: 
-                        if i % 2 == 0:
-                            self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
-                        else:
-                            self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                if ornament == "diamond": 
+                    if i % 2 == 0:
+                        self.add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params)
+                    else:
+                        self.add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
 
 
                 T2 = plane.YAxis * (brick_width+ brick_spacing)
