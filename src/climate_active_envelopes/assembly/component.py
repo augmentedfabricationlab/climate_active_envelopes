@@ -135,39 +135,41 @@ class CAEComponent():
         return selected_edge, edge_type
 
 
-    @classmethod
-    def select_face_by_key(cls, cell_network, face_key):
-        """Determine the building component type of the selected face.
+    # @classmethod
+    # def select_face_by_key(cls, cell_network, face_key):
+    #     """Determine the building component type of the selected face.
 
-        Parameters
-        ----------
-        cell_network : :class:`CellNetwork`
-            The cell network data structure.  
-        face_key : int
-            The key of the face to select.
+    #     Parameters
+    #     ----------
+    #     cell_network : :class:`CellNetwork`
+    #         The cell network data structure.  
+    #     face_key : int
+    #         The key of the face to select.
 
-        Returns
-        -------
-        tuple
-            The selected face (e.g. 4) and its type ('wall' or 'slab').
-        """
+    #     Returns
+    #     -------
+    #     tuple
+    #         The selected face (e.g. 4) and its type ('wall' or 'slab').
+    #     """
 
-        for key, face in enumerate(cell_network.faces()):
-            if key == face_key:
-                selected_face = face
-        # Add the selected face to the cell_network
-        cell_network.selected_face = selected_face
+    #     for key, face in enumerate(cell_network.faces()):
+    #         if key == face_key:
+    #             selected_face = face
+    #     # Add the selected face to the cell_network
+    #     cell_network.selected_face = selected_face
 
-        normal = cell_network.face_normal(cell_network.selected_face)
-        if normal[1] in [-1, 1] or normal[0] in [-1,1]:
-            face_type = 'wall'
-        if normal[2] in [-1, 1]:
-            face_type = 'slab'
+    #     normal = cell_network.face_normal(cell_network.selected_face)
+    #     if normal[1] in [-1, 1] or normal[0] in [-1,1]:
+    #         face_type = 'wall'
+    #     elif normal[2] in [-1, 1]:
+    #         face_type = 'slab'
+    #     else:
+    #         face_type = 'other'
 
-        cell_network.face_attribute(selected_face, 'face_type', face_type)
-        print(f"Selected face is a {face_type} for key {face_key}: {selected_face}")
+    #     cell_network.face_attribute(selected_face, 'face_type', face_type)
+    #     print(f"Selected face is a {face_type} for key {face_key}: {selected_face}")
 
-        return selected_face, face_type
+    #     return selected_face, face_type
     
     @classmethod
     def select_adjacent_faces_by_edge(cls, cell_network, edge_key):
@@ -229,9 +231,8 @@ class CAEComponent():
         
         sort_faces_in_cells = []
         for cell in cell_network.cells():
-            for face in cell_network.faces():
-                if face in cell_network._cell[cell]:
-                    sort_faces_in_cells.append((face, cell))
+            for face in cell_network._cell[cell]:
+                sort_faces_in_cells.append((face, cell))
 
         faces_to_cell_dict = {}
         for face, cell in sort_faces_in_cells:
@@ -265,17 +266,17 @@ class CAEComponent():
         for face, cell in faces_to_cells_dict.items():
             normal = cell_network.face_normal(face)
 
-            if len(cell) >= 2:  # face between minimum two cells and (normal[1] in [-1, 1] or normal[0] in [-1, 1])
+            if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]):  # Faces between two cells
                 face_type = 'inner wall'
                 inner_walls.append((face, cell))
-            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]: #face vertical and only part of one cell
+            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]:  # Vertical face (and not an inner wall)
                 face_type = 'outer wall'
                 outer_walls.append((face, cell))
-            elif normal[2] in [-1, 1]: #face horizontal
+            elif normal[2] in [-1, 1]:  # Horizontal face (and not an inner wall or vertical)
                 face_type = 'slab'
                 slabs.append((face, cell))
-            else:
-                continue
+            else:  #Should not happen
+                face_type = 'undefined'
 
             cell_network.face_attribute(face, 'face_type', face_type)
 
@@ -299,12 +300,16 @@ class CAEComponent():
         object
             The selected face.
         """
+        selected_face = None
+        face_type = None
 
         for key, face in enumerate(cell_network.faces()):
             if key == face_key:
                 selected_face = face
-        #cell_network.face_attribute(selected_face, 'face_type')         # Get attribute of the selected face
-        return selected_face
+                face_type = cell_network.face_attribute(face, 'face_type')
+                break  # Exit the loop once the face is found
+
+        return selected_face, face_type
 
     @classmethod
     def select_face_neighbors(cls, cell_network, face_key):
@@ -335,4 +340,4 @@ class CAEComponent():
                     face_type = cell_network.face_attribute(neighbor, 'face_type')
                     neighbor_face_types.append((neighbor, face_type))
 
-        return neighbor_face_types
+        return neighbors, neighbor_face_types
