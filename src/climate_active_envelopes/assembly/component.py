@@ -228,18 +228,19 @@ class CAEComponent():
         dict
             A dictionary with faces and corresponding cells.
         """
-        
+        #List of the faces in the corresponding cells
         sort_faces_in_cells = []
         for cell in cell_network.cells():
-            for face in cell_network._cell[cell]:
+            for face in cell_network.cell_faces(cell):
                 sort_faces_in_cells.append((face, cell))
 
+        # Store faces with its corresponding cell
         faces_to_cell_dict = {}
         for face, cell in sort_faces_in_cells:
             if face not in faces_to_cell_dict:
                 faces_to_cell_dict[face] = []
             faces_to_cell_dict[face].append(cell)
-        
+             
         return faces_to_cell_dict
 
     @classmethod
@@ -261,26 +262,39 @@ class CAEComponent():
         outer_walls = []
         slabs = []
 
+        # Create a dictionary mapping faces to cells
         faces_to_cells_dict = cls.create_face_cell_dict(cell_network)
 
+        # Create a dictionary to group faces by their vertices
+        face_vertices_dict = {}
+        for face in cell_network.faces():
+            vertices = tuple(sorted(cell_network.face_vertices(face)))
+            if vertices not in face_vertices_dict:
+                face_vertices_dict[vertices] = []
+            face_vertices_dict[vertices].append(face)
+
+        # Classify faces with the same vertices as 'inner walls'
+        for faces in face_vertices_dict.values():
+            if len(faces) > 1:
+                for face in faces:
+                    cell = faces_to_cells_dict[face]
+                    face_type = 'inner wall'
+                    inner_walls.append((face, cell))
+                    cell_network.face_attribute(face, 'face_type', face_type)
+
+        # Classify faces as 'outer walls' or 'slabs'
         for face, cell in faces_to_cells_dict.items():
-            normal = cell_network.face_normal(face)
+            if (face, cell) not in inner_walls:
+                normal = cell_network.face_normal(face)
+                if normal[1] in [-1, 1] or normal[0] in [-1, 1]:  # vertical faces
+                    face_type = 'outer wall'
+                    outer_walls.append((face, cell))
+                else: #normal[2] in [-1, 1] as horizontal faces
+                    face_type = 'slab'
+                    slabs.append((face, cell))
 
-            if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]):  # Faces between two cells
-                face_type = 'inner wall'
-                inner_walls.append((face, cell))
-            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]:  # Vertical face (and not an inner wall)
-                face_type = 'outer wall'
-                outer_walls.append((face, cell))
-            elif normal[2] in [-1, 1]:  # Horizontal face (and not an inner wall or vertical)
-                face_type = 'slab'
-                slabs.append((face, cell))
-            else:  #Should not happen
-                face_type = 'undefined'
+                cell_network.face_attribute(face, 'face_type', face_type)
 
-            cell_network.face_attribute(face, 'face_type', face_type)
-
-       
         all_faces = inner_walls + outer_walls + slabs
         return all_faces
 
