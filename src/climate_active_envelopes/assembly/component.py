@@ -30,46 +30,8 @@ class CAEComponent():
     """
 
     def __init__(self, frame=None):
-        #super(CAEComponent, self).__init__()
         self.frame = frame #origin frame
-
-    
-    # @classmethod
-    # def from_shape(cls, shape, frame=None):
-    #     """Construct a component from a shape primitive.
-
-    #     Parameters
-    #     ----------
-    #     shape : :class:`compas.geometry.Shape`
-    #         Shape primitive describing the component.
-    #     frame : :class:`Frame`
-    #         Origin frame of the component.
-    #     Returns
-    #     -------
-    #     :class:`Component`
-    #         New instance of the component.
-    #     """
-    #     vertex = shape.vertex[0]
-    #     frame = Frame([vertex['x'], vertex['y'], vertex['z']], [1, 0, 0], [0, 1, 0])
-    #     component = cls(frame)
-    #     component._source = shape
-    #     component._mesh = Mesh.from_shape(component._source)
-    #     component.vertices, component.faces = component._mesh.to_vertices_and_faces()  
-    #     #component.faces = [sorted(face) for face in component.faces]
-
-    #     # Extract boundary edges
-    #     boundary_edges = set()
-    #     for face in component.faces:
-    #         for i in range(len(face)):
-    #             u = face[i]
-    #             v = face[(i + 1) % len(face)]
-    #             edge = tuple(sorted((u, v)))
-    #             boundary_edges.add(edge)
-
-    #     component.boundary_edges = list(boundary_edges)
-
-    #     return component
-    
+        #self.cell_network = CellNetwork()
 
     @classmethod
     def find_or_add_vertex(cls, cell_network, x, y, z):
@@ -126,7 +88,7 @@ class CAEComponent():
         vx, vy, vz = cell_network.vertex_coordinates(v)
 
         if ux == vx and uz == vz:
-            edge_type = 'column' if uy != vy else 'beam'
+            edge_type = 'column' 
         else:
             edge_type = 'beam'
 
@@ -134,42 +96,6 @@ class CAEComponent():
         print(f"Selected edge is a {edge_type}  for key {edge_key}: {selected_edge}")
         return selected_edge, edge_type
 
-
-    # @classmethod
-    # def select_face_by_key(cls, cell_network, face_key):
-    #     """Determine the building component type of the selected face.
-
-    #     Parameters
-    #     ----------
-    #     cell_network : :class:`CellNetwork`
-    #         The cell network data structure.  
-    #     face_key : int
-    #         The key of the face to select.
-
-    #     Returns
-    #     -------
-    #     tuple
-    #         The selected face (e.g. 4) and its type ('wall' or 'slab').
-    #     """
-
-    #     for key, face in enumerate(cell_network.faces()):
-    #         if key == face_key:
-    #             selected_face = face
-    #     # Add the selected face to the cell_network
-    #     cell_network.selected_face = selected_face
-
-    #     normal = cell_network.face_normal(cell_network.selected_face)
-    #     if normal[1] in [-1, 1] or normal[0] in [-1,1]:
-    #         face_type = 'wall'
-    #     elif normal[2] in [-1, 1]:
-    #         face_type = 'slab'
-    #     else:
-    #         face_type = 'other'
-
-    #     cell_network.face_attribute(selected_face, 'face_type', face_type)
-    #     print(f"Selected face is a {face_type} for key {face_key}: {selected_face}")
-
-    #     return selected_face, face_type
     
     @classmethod
     def select_adjacent_faces_by_edge(cls, cell_network, edge_key):
@@ -191,7 +117,6 @@ class CAEComponent():
 
         selected_edge, edge_type = cls.select_edge_by_key(cell_network, edge_key)
         selected_edge_faces = cell_network.edge_faces(selected_edge)
-        #print(f"Selected edge and adjacent faces for key {edge_key} : {selected_edge_faces}")
 
         # Add the faces to cell_network attributes if needed
         cell_network.selected_edge_faces = selected_edge_faces
@@ -314,14 +239,11 @@ class CAEComponent():
         object
             The selected face.
         """
-        selected_face = None
-        face_type = None
 
         for key, face in enumerate(cell_network.faces()):
             if key == face_key:
                 selected_face = face
                 face_type = cell_network.face_attribute(face, 'face_type')
-                break  # Exit the loop once the face is found
 
         return selected_face, face_type
 
