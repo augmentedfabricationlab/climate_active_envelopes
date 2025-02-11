@@ -96,46 +96,6 @@ class CAEComponent():
             cell_network.add_cell(face_keys)
 
         return cell_network
-
-
-    @classmethod
-    def select_edge_by_key(cls, cell_network, edge_key):
-        """Select an edge by its key and assign a building type.
-
-        Parameters
-        ----------
-        cell_network : :class:`CellNetwork`
-            The cell network data structure.
-        edge_key : int
-            The key of the edge to select.
-
-        Returns
-        -------
-        tuple
-            The selected edge (e.g. (1,3)) and its type ('column' or 'beam').
-        """
-
-        for key, edge in enumerate(cell_network.edges()):
-            if key == edge_key:
-                selected_edge = edge
-        
-        # Add the selected edge to the cell_network
-        cell_network.selected_edge = selected_edge
-
-        # building component type of the selected edge
-        u, v = selected_edge
-        ux, uy, uz = cell_network.vertex_coordinates(u)
-        vx, vy, vz = cell_network.vertex_coordinates(v)
-
-        if ux == vx and uz == vz:
-            edge_type = 'column' 
-        else:
-            edge_type = 'beam'
-
-        cell_network.edge_attribute(selected_edge, 'edge_type', edge_type)
-        print(f"Selected edge is a {edge_type}  for key {edge_key}: {selected_edge}")
-        return selected_edge, edge_type
-
     
     @classmethod
     def select_adjacent_faces_by_edge(cls, cell_network, edge_key):
@@ -304,3 +264,50 @@ class CAEComponent():
                     neighbor_face_types.append((neighbor, face_type))
 
         return neighbors, neighbor_face_types
+
+    @classmethod
+    def get_shared_edge(cls, cell_network, current_face, face_neighbors, face_key):
+        """Get the shared edge of two neighboring faces in the cell network.
+
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+        face_key : int
+            The key of the first face
+
+        Returns
+        -------
+        int
+            The key and edge type of the shared edge.
+        """
+
+        for i, face in enumerate(face_neighbors): #i is the index of the face in the list
+            if i < face_key: #only check the faces before the current face
+                neighbor_face = face 
+
+        neighbor_face_edges = cell_network.face_edges(neighbor_face)
+        current_face_edges = cell_network.face_edges(current_face)
+
+        for u, v in neighbor_face_edges:
+            if (u, v) in current_face_edges or (v, u) in current_face_edges:
+                shared_edge = (u, v)
+
+                edge_faces = cell_network.edge_faces(shared_edge)
+                current_face_normal = cell_network.face_normal(current_face)
+                neighbor_face_normal = cell_network.face_normal(neighbor_face)
+
+                ux, uy, uz = cell_network.vertex_coordinates(u)
+                vx, vy, vz = cell_network.vertex_coordinates(v)
+
+                if ux == vx and uz != vz:
+                    edge_type = 'corner'
+                    if current_face_normal == neighbor_face_normal:
+                        edge_type = 'joint'
+                    elif len(edge_faces) > 2:
+                        edge_type = 'T-joint'
+                else:
+                    edge_type = 'beam'
+
+                cell_network.edge_attribute(shared_edge, 'edge_type', edge_type)
+        return shared_edge, edge_type
