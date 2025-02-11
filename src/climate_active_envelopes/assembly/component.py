@@ -57,6 +57,46 @@ class CAEComponent():
                 return vkey
         return cell_network.add_vertex(x=x, y=y, z=z)
     
+    @classmethod
+    def create_cell_network(cls, meshes, cell_network):
+        """Create a cell network from a list of meshes.
+
+        Parameters
+        ----------
+        meshes : list of :class:`Mesh`
+            A list of meshes to create the cell network from.
+
+        Returns
+        -------
+        :class:`CellNetwork`
+            The created cell network.
+        """
+
+        for mesh in meshes:
+            face_keys = []
+            for fkey in mesh.faces():
+                face_vertices = []
+                for vkey in mesh.face_vertices(fkey):
+                    x, y, z = mesh.vertex_coordinates(vkey)
+                    vertex = cls.find_or_add_vertex(cell_network, x, y, z)
+                    face_vertices.append(vertex)
+                
+                # Check if the face already exists by comparing vertices
+                face_exists = False
+                for existing_face in cell_network.faces():
+                    existing_face_vertices = cell_network.face_vertices(existing_face)
+                    if set(face_vertices) == set(existing_face_vertices):
+                        face_key = existing_face
+                        face_exists = True
+                
+                if not face_exists:
+                    face_key = cell_network.add_face(face_vertices)
+                
+                face_keys.append(face_key)
+            cell_network.add_cell(face_keys)
+
+        return cell_network
+
 
     @classmethod
     def select_edge_by_key(cls, cell_network, edge_key):
@@ -190,37 +230,25 @@ class CAEComponent():
         # Create a dictionary mapping faces to cells
         faces_to_cells_dict = cls.create_face_cell_dict(cell_network)
 
-        # Create a dictionary to group faces by their vertices
-        face_vertices_dict = {}
-        for face in cell_network.faces():
-            vertices = tuple(sorted(cell_network.face_vertices(face)))
-            if vertices not in face_vertices_dict:
-                face_vertices_dict[vertices] = []
-            face_vertices_dict[vertices].append(face)
-
-        # Classify faces with the same vertices as 'inner walls'
-        for faces in face_vertices_dict.values():
-            if len(faces) > 1:
-                for face in faces:
-                    cell = faces_to_cells_dict[face]
-                    face_type = 'inner wall'
-                    inner_walls.append((face, cell))
-                    cell_network.face_attribute(face, 'face_type', face_type)
 
         # Classify faces as 'outer walls' or 'slabs'
         for face, cell in faces_to_cells_dict.items():
-            if (face, cell) not in inner_walls:
-                normal = cell_network.face_normal(face)
-                if normal[1] in [-1, 1] or normal[0] in [-1, 1]:  # vertical faces
-                    face_type = 'outer wall'
-                    outer_walls.append((face, cell))
-                else: #normal[2] in [-1, 1] as horizontal faces
-                    face_type = 'slab'
-                    slabs.append((face, cell))
+            normal = cell_network.face_normal(face)
+            if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]): #face between minimum two cells 
+                face_type = 'inner wall'
+                inner_walls.append((face, cell))
+                
+            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]:  # vertical faces
+                face_type = 'outer wall'
+                outer_walls.append((face, cell))
+            else: #normal[2] in [-1, 1] as horizontal faces
+                face_type = 'slab'
+                slabs.append((face, cell))
 
-                cell_network.face_attribute(face, 'face_type', face_type)
+            cell_network.face_attribute(face, 'face_type', face_type)
 
         all_faces = inner_walls + outer_walls + slabs
+
         return all_faces
 
     @classmethod
@@ -261,18 +289,17 @@ class CAEComponent():
         dict
             A dictionary of face neighbors.
         """
+        current_face, face_type = cls.select_face_by_fkey(cell_network, face_key)
+        
         neighbor_face_types = []
+        neighbors = []
 
-        for cell in cell_network.cells():
-            valid_faces = []
-            for key, face in enumerate(cell_network.faces()):
-                if key == face_key:
-                    if face in cell_network.cell_faces(cell):
-                        valid_faces.append(face)
-
-            for face in valid_faces:
-                neighbors = cell_network.cell_face_neighbors(cell, face)
-                for neighbor in neighbors:
+        # Find all neighboring faces of the current_face through its edges
+        for edge in cell_network.face_edges(current_face):
+            edge_faces = cell_network.edge_faces(edge)
+            for neighbor in edge_faces:
+                if neighbor != current_face: # and neighbor not in all_neighbors
+                    neighbors.append(neighbor)
                     face_type = cell_network.face_attribute(neighbor, 'face_type')
                     neighbor_face_types.append((neighbor, face_type))
 
