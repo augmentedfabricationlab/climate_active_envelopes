@@ -212,6 +212,46 @@ class CAEComponent():
         return all_faces
 
     @classmethod
+    def outer_wall_attributes(cls, cell_network, window_curve=None):
+        """Assign attributes to outer walls.
+        
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+        window_curve : :class:`Curve`
+            The curve representing the window.
+        Returns
+        -------
+        dict
+            A dictionary of outer walls with attributes.
+        """
+        outer_wall_attributes = {}
+        all_faces = cell_network.faces()
+        for face in all_faces:
+            face_type = cell_network.face_attribute(face, 'face_type')
+            if face_type == 'outer wall':
+                attributes = {}
+                if window_curve:
+                    attributes['window'] = window_curve
+                # if door_curve:
+                #     attributes['door'] = door_curve
+                if attributes:
+                    cell_network.face_attributes(face, attributes)
+                outer_wall_attributes[face] = attributes
+        return outer_wall_attributes
+
+        # all_faces = cell_network.faces()
+        # for face in all_faces:
+        #     face_type = cell_network.face_attribute(face, 'face_type')
+        #     if face_type == 'outer wall':
+        #         if window_curve:
+        #             cell_network.face_attribute(face, 'window', window_curve)
+        #             #cell_network.face_attribute(face, 'door', door_curve)
+
+
+
+    @classmethod
     def select_face_by_fkey(cls, cell_network, face_key):
         """Select the face by key from the cell network.
 
@@ -266,15 +306,15 @@ class CAEComponent():
         return neighbors, neighbor_face_types
 
     @classmethod
-    def get_shared_edge(cls, cell_network, current_face, face_neighbors, face_key):
+    def get_shared_edge(cls, cell_network, current_face, face_neighbors, edge_key):
         """Get the shared edge of two neighboring faces in the cell network.
 
         Parameters
         ----------
         cell_network : :class:`CellNetwork`
             The cell network data structure.
-        face_key : int
-            The key of the first face
+        edge_key : int
+            The key of the edge to select.
 
         Returns
         -------
@@ -283,7 +323,7 @@ class CAEComponent():
         """
 
         for i, face in enumerate(face_neighbors): #i is the index of the face in the list
-            if i < face_key: #only check the faces before the current face
+            if i < edge_key: #if the face is before the current face
                 neighbor_face = face 
 
         neighbor_face_edges = cell_network.face_edges(neighbor_face)
@@ -303,11 +343,13 @@ class CAEComponent():
                 if ux == vx and uz != vz:
                     edge_type = 'corner'
                     if current_face_normal == neighbor_face_normal:
-                        edge_type = 'joint'
+                        edge_type = 'outer wall joint'
                     elif len(edge_faces) > 2:
-                        edge_type = 'T-joint'
+                        edge_type = 'inner wall joint'
+                        
                 else:
                     edge_type = 'beam'
 
                 cell_network.edge_attribute(shared_edge, 'edge_type', edge_type)
         return shared_edge, edge_type
+
