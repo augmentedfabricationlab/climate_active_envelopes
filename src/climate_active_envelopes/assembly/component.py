@@ -226,29 +226,30 @@ class CAEComponent():
         dict
             A dictionary of outer walls with attributes.
         """
+        # outer_wall_attributes = {}
+        # all_faces = cell_network.faces()
+        # for face in all_faces:
+        #     face_type = cell_network.face_attribute(face, 'face_type')
+        #     if face_type == 'outer wall':
+        #         attributes = {}
+        #         if window_curve:
+        #             attributes['window'] = window_curve
+        #         # if door_curve:
+        #         #     attributes['door'] = door_curve
+        #         if attributes:
+        #             cell_network.face_attributes(face, attributes)
+        #         outer_wall_attributes[face] = attributes
+        # return outer_wall_attributes
+
         outer_wall_attributes = {}
         all_faces = cell_network.faces()
         for face in all_faces:
             face_type = cell_network.face_attribute(face, 'face_type')
             if face_type == 'outer wall':
-                attributes = {}
                 if window_curve:
-                    attributes['window'] = window_curve
-                # if door_curve:
-                #     attributes['door'] = door_curve
-                if attributes:
-                    cell_network.face_attributes(face, attributes)
-                outer_wall_attributes[face] = attributes
+                    cell_network.face_attribute(face, 'window', window_curve)
+                outer_wall_attributes[face] = cell_network.face_attributes(face)
         return outer_wall_attributes
-
-        # all_faces = cell_network.faces()
-        # for face in all_faces:
-        #     face_type = cell_network.face_attribute(face, 'face_type')
-        #     if face_type == 'outer wall':
-        #         if window_curve:
-        #             cell_network.face_attribute(face, 'window', window_curve)
-        #             #cell_network.face_attribute(face, 'door', door_curve)
-
 
 
     @classmethod
