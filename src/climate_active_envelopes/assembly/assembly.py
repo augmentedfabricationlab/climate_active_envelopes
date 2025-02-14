@@ -80,137 +80,6 @@ class CAEAssembly(Assembly):
         return brick_width_i, brick_length_i, brick_length, brick_height, brick_width
 
 
-    # def generate_wall(self,
-    #                     bond_type,
-    #                     wallsystem,
-    #                     brick_full,
-    #                     brick_insulated,
-    #                     plane,
-    #                     lines,
-    #                     ): 
-
-    #         """
-    #         Generate a wall with a specified bond pattern. 
-
-    #         Parameters
-    #         ----------
-    #         bond : int
-    #             The bond pattern to use (0 for Flemish bond, 1 for Flemish bond 2)
-    #         brick_full : :class:`CAEPart`
-    #             The full brick to use for the wall
-    #         brick_insulated : :class:`CAEPart`
-    #             The insulated brick to use for the wall
-    #         plane : :class:`compas.geometry.Plane`
-    #             The plane on which the wall is generated
-    #         lines : list
-    #             The list of lines that define the wall
-    #         transform_type : str, optional
-    #             Type of transformation to apply ("translate" or "rotate").
-    #         """
-
-    #         brick_spacing = 0.015
-    #         _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
-        
-    #         total_length = 0
-
-    #         params = {"brick_full": brick_full,
-    #                 "brick_insulated": brick_insulated,
-    #                 "plane": plane,
-    #                 }
-            
-    #         # Calculate the number of bricks per course
-    #         for j, line in enumerate(lines):
-    #             line_length = abs(line.Length)
-    #             bricks_per_course = math.floor(line_length / ((brick_width + brick_length) /2 + brick_spacing))
-
-    #             if bricks_per_course % 2 == 0:
-    #                 bricks_per_course = bricks_per_course - 1
-    #             course_is_odd = j %2 != 0 #check if course is odd or even
-
-    #             if course_is_odd == True and bricks_per_course % 2 != 0:
-    #                 bricks_per_course = bricks_per_course-1
-
-    #             # Calculate the direction vector of the line
-    #             direction_vector = line.To - line.From
-    #             direction_vector.Unitize()
-    #             T = direction_vector * (brick_length + brick_spacing)
-    #             initial_brick_center = line.From + T
-            
-    #             if j == 0:
-    #                 #Calculating the length of the wall
-    #                 half_bricks = math.ceil(bricks_per_course / 2)
-    #                 total_length += half_bricks * (brick_length + brick_spacing) + (bricks_per_course - half_bricks) * (brick_width + brick_spacing)
-    #                 total_length += 2 * (brick_length/2)
-
-    #             #Pick the bond   
-    #             if bond_type == "flemish_bond": #flemish bond
-    #                 self.generate_flemish_bond(
-    #                         initial_brick_center = initial_brick_center,
-    #                         bricks_per_course = bricks_per_course,
-    #                         course_is_odd = course_is_odd,
-    #                         direction_vector=direction_vector,
-    #                         wall_system=wallsystem,
-    #                         **params) 
-                    
-    #             if bond_type == "vertical_bond": #cross bond
-    #                 self.generate_vertical_bond(
-    #                         initial_brick_center = initial_brick_center,
-    #                         line_length= line_length,
-    #                         course_is_odd = course_is_odd,
-    #                         j=j,
-    #                         direction_vector = direction_vector,
-    #                         wall_system=wallsystem,
-    #                         **params) 
-                    
-    #             if bond_type == "french_bond": #french bond
-    #                 self.generate_french_bond(
-    #                     initial_brick_center = initial_brick_center,
-    #                     line_length= line_length,
-    #                     course_is_odd = course_is_odd,
-    #                     j=j,
-    #                     wall_system=wallsystem,
-    #                     **params)
-                
-    #             if bond_type == "generate_flemish_for_cellnetwork":
-    #                 self.generate_flemish_for_cellnetwork(
-    #                         initial_brick_center = initial_brick_center,
-    #                         bricks_per_course = bricks_per_course,
-    #                         course_is_odd = course_is_odd,
-    #                         direction_vector=direction_vector,
-    #                         wall_system=wallsystem,
-    #                         **params)                     
-                    
-                                
-    #         return total_length
-
-    # def calculate_brick_parameters(self, lines, brick_width, brick_length, brick_spacing):
-    #     total_length = 0
-    #     brick_parameters = []
-
-    #     for j, line in enumerate(lines):
-    #         line_length = abs(line.Length)
-    #         bricks_per_course = math.floor(line_length / ((brick_width + brick_length) / 2 + brick_spacing))
-
-    #         if bricks_per_course % 2 == 0:
-    #             bricks_per_course -= 1
-    #         course_is_odd = j % 2 != 0
-
-    #         if course_is_odd and bricks_per_course % 2 != 0:
-    #             bricks_per_course -= 1
-
-    #         direction_vector = line.To - line.From
-    #         direction_vector.Unitize()
-    #         T = direction_vector * (brick_length + brick_spacing)
-    #         initial_brick_center = line.From + T
-
-    #         if j == 0:
-    #             half_bricks = math.ceil(bricks_per_course / 2)
-    #             total_length += half_bricks * (brick_length + brick_spacing) + (bricks_per_course - half_bricks) * (brick_width + brick_spacing)
-    #             total_length += 2 * (brick_length / 2)
-
-    #         brick_parameters.append((bricks_per_course, course_is_odd, direction_vector, initial_brick_center))
-
-    #     return total_length, brick_parameters
     
     def calculate_brick_parameters(self, contour_lines, brick_full, brick_insulated):
 
@@ -245,6 +114,7 @@ class CAEAssembly(Assembly):
 
             brick_parameters.append((bricks_per_course, course_is_even, course_is_odd, direction_vector, initial_brick_center))
             #total_length = bricks_per_course * brick_length + (bricks_per_course - 1) * brick_spacing
+            
         return brick_parameters
 
 
@@ -299,7 +169,6 @@ class CAEAssembly(Assembly):
                     wall_system=wallsystem,
                     **params
                 )
-
 
     def create_brick_and_add_to_assembly(self,
                         brick_type, 
