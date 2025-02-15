@@ -81,57 +81,69 @@ class CAEAssembly(Assembly):
 
 
     
-    def calculate_brick_parameters(self, contour_lines, brick_full, brick_insulated):
+    def calculate_brick_parameters(self, contour_curves, brick_full, brick_insulated, brick_spacing):
 
         brick_parameters = []
 
-        _, _, brick_length, brick_height, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+        _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
 
         brick_length = brick_full.shape.ysize
-        brick_height = brick_full.shape.zsize
         brick_width = brick_full.shape.xsize
-        brick_spacing = 0.015
+        #brick_spacing = 0.015
 
-        for course, line in enumerate(contour_lines):
-            if course == 0:
+        for course, contour_curve in enumerate(contour_curves):
+
+            # Skip last course
+            if course == len(contour_curves) - 1:
                 continue
 
-            line_length = abs(line.Length)
-            bricks_per_course = math.floor(line_length / ((brick_width + brick_length) / 2 + brick_spacing))
+            curve_length = abs(contour_curve.GetLength())
+            bricks_per_course = math.floor(curve_length / ((brick_width + brick_length) / 2 + brick_spacing))
 
-            # Calculate the direction vector of the line
-            direction_vector = line.To - line.From
+            # Calculate the direction vector of the curve
+            direction_vector = contour_curve.PointAtEnd - contour_curve.PointAtStart
             direction_vector.Unitize()
             T = direction_vector * (abs(brick_length) + abs(brick_spacing))
-            initial_brick_center = line.From + T
+            initial_brick_center = contour_curve.PointAtStart + T
 
             #check if course is odd or even   
             course_is_even = course % 2 == 0
             course_is_odd = course  %2 != 0 
 
-            if course_is_odd and bricks_per_course % 2 != 0:
+            # number of bricks per course are always odd
+            if bricks_per_course % 2 == 0:
                 bricks_per_course -= 1
+
+            # if course is odd and number of bricks per course is even, subtract 1
+            if course_is_odd == True and bricks_per_course % 2 != 0:
+                bricks_per_course -= 1
+
+
 
             brick_parameters.append((bricks_per_course, course_is_even, course_is_odd, direction_vector, initial_brick_center))
             #total_length = bricks_per_course * brick_length + (bricks_per_course - 1) * brick_spacing
             
-        return brick_parameters
+        return contour_curves, brick_parameters
 
 
-    def generate_wall(self, bond_type, wallsystem, brick_full, brick_insulated, plane, contour_lines):
+    def generate_wall(self, bond_type, wallsystem, brick_full, brick_insulated, plane, contour_curves, brick_spacing):
 
-        brick_spacing = 0.015
-        _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
-
-        brick_parameters = self.calculate_brick_parameters(contour_lines, brick_full, brick_insulated)
+        contour_curves, brick_parameters = self.calculate_brick_parameters(contour_curves, brick_full, brick_insulated, brick_spacing)
 
         params = {
             "brick_full": brick_full,
             "brick_insulated": brick_insulated,
             "plane": plane,
         }
+        
+        for contour_curve, (bricks_per_course, course_is_even, course_is_odd, direction_vector, initial_brick_center) in zip(contour_curves, brick_parameters):
 
-        for (bricks_per_course, course_is_even, course_is_odd, direction_vector, initial_brick_center) in brick_parameters:
+            # curve_midpoint = (contour_curve.PointAtStart + contour_curve.PointAtEnd) / 2
+
+            # # Adjust the initial brick center to be centered around the midpoint
+            # total_length =  bricks_per_course * brick_full.shape.ysize + (bricks_per_course - 1) * brick_spacing
+            # initial_brick_center = curve_midpoint - (direction_vector * (total_length / 2))
+
             if bond_type == "flemish_bond":
                 self.generate_flemish_bond(
                     initial_brick_center=initial_brick_center,
@@ -674,15 +686,16 @@ class CAEAssembly(Assembly):
         shift_vector = direction_vector * ((brick_length + brick_width)/2 + brick_spacing + 0.005)
         
         for brick in range(bricks_per_course):
-            T = direction_vector * (brick * ((brick_length_i + brick_width_i)/2 + mortar_joint_height))
 
             # Shifting every second row
+            T = direction_vector * (brick * ((brick_length_i + brick_width_i)/2 + mortar_joint_height))
             if course_is_odd:
                 T += shift_vector
 
             brick_center = initial_brick_center + T
             brick_frame = Frame(point_to_compas(brick_center), direction_vector, center_brick_frame.yaxis)
 
+            # courses are even
             if not course_is_odd:
                 if brick % 2 != 0: #brick is odd
                     # first row - self-shading bricks 
@@ -709,7 +722,6 @@ class CAEAssembly(Assembly):
 
                     # second row - insulated bricks
                     if wall_system == "double_layer":
-                        # last brick in the row
                         T4 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_width + 2 * brick_spacing))
                         current_frame = brick_frame.transformed(T4)
                         self.create_brick_and_add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params) 
@@ -727,13 +739,15 @@ class CAEAssembly(Assembly):
                         self.create_brick_and_add_to_assembly( brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
 
             if course_is_odd:
-                if brick == 0: # first self_shading brick
+                if brick == 0:  # first brick in course
                     R3 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R3)
                     T8 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
                     current_frame = current_frame.transformed(T8)
-                    T9 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    T9 = Translation.from_vector(current_frame.yaxis * (brick_width - brick_length/2 + brick_spacing))
                     current_frame = current_frame.transformed(T9)
+                    # T9 = Translation.from_vector(current_frame.yaxis * (brick_length_i + brick_length_i/2 + brick_width_i + 3 * brick_spacing)/2)
+                    # current_frame = current_frame.transformed(T9)
                     self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
 
                     if wall_system == "double_layer":
@@ -784,7 +798,7 @@ class CAEAssembly(Assembly):
                             current_frame = current_frame.transformed(T17)
                             self.create_brick_and_add_to_assembly( brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
 
-                elif brick == bricks_per_course - 1: # last self-shading brick
+                elif brick == bricks_per_course - 1: # last brick
                     R6 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R6)
                     T18 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
