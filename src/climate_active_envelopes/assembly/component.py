@@ -190,7 +190,6 @@ class CAEComponent():
         # Create a dictionary mapping faces to cells
         faces_to_cells_dict = cls.create_face_cell_dict(cell_network)
 
-
         # Classify faces as 'outer walls' or 'slabs'
         for face, cell in faces_to_cells_dict.items():
             normal = cell_network.face_normal(face)
@@ -250,7 +249,6 @@ class CAEComponent():
                     cell_network.face_attribute(face, 'window', window_curve)
                 outer_wall_attributes[face] = cell_network.face_attributes(face)
         return outer_wall_attributes
-
 
     @classmethod
     def select_face_by_fkey(cls, cell_network, face_key):
@@ -352,5 +350,10 @@ class CAEComponent():
                     edge_type = 'beam'
 
                 cell_network.edge_attribute(shared_edge, 'edge_type', edge_type)
+
+                u_xyz = cell_network.vertex_coordinates(u)
+                v_xyz = cell_network.vertex_coordinates(v)
+                edge_coordinates = (u_xyz, v_xyz)
+
         return shared_edge, edge_type
 
