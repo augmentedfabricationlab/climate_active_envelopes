@@ -5,11 +5,12 @@ from __future__ import division
 from compas.datastructures import Datastructure
 from compas.datastructures import Graph
 from compas.datastructures import AssemblyError
-from compas.geometry import Frame, Translation, Rotation, Transformation, Vector
+from compas.geometry import Frame, Translation, Rotation, Transformation, Vector, Point
 from compas_rhino.conversions import plane_to_compas_frame, point_to_compas
 
 from assembly_information_model import Assembly
 from .part import CAEPart as Part
+from .component import CAEComponent as Component
 
 import math
 import Rhino.Geometry as rg
@@ -51,7 +52,7 @@ class CAEAssembly(Assembly):
         self.to_json(path)
 
 
-    def get_brick_dimensions(self, brick_full, brick_insulated):
+    def get_brick_dimensions(self, brick_full, brick_half):
 
         """
         Get the dimensions of the bricks
@@ -64,25 +65,26 @@ class CAEAssembly(Assembly):
             The insulated brick to use for the wall
         """
 
-        brick_insulated_vertices = [brick_insulated.mesh.vertex_coordinates(vkey) for vkey in brick_insulated.mesh.vertices()]
-        min_x = min(vertex[0] for vertex in brick_insulated_vertices)
-        max_x = max(vertex[0] for vertex in brick_insulated_vertices)
-        min_y = min(vertex[1] for vertex in brick_insulated_vertices)
-        max_y = max(vertex[1] for vertex in brick_insulated_vertices)
+        # brick_insulated_vertices = [brick_insulated.mesh.vertex_coordinates(vkey) for vkey in brick_insulated.mesh.vertices()]
+        # min_x = min(vertex[0] for vertex in brick_insulated_vertices)
+        # max_x = max(vertex[0] for vertex in brick_insulated_vertices)
+        # min_y = min(vertex[1] for vertex in brick_insulated_vertices)
+        # max_y = max(vertex[1] for vertex in brick_insulated_vertices)
 
-        brick_width_i = max_x - min_x
-        brick_length_i = max_y - min_y
+        # brick_width_i = max_x - min_x
+        # brick_length_i = max_y - min_y
         brick_length = brick_full.shape.ysize
         brick_height = brick_full.shape.zsize
         brick_width = brick_full.shape.xsize
+        brick_length_h = brick_half.shape.ysize
 
-        return brick_width_i, brick_length_i, brick_length, brick_height, brick_width
+        return brick_length, brick_height, brick_width, brick_length_h
     
-    def calculate_brick_parameters(self, contour_curves, brick_full, brick_insulated, brick_spacing):
+    def calculate_brick_parameters(self, contour_curves, brick_full, brick_half, brick_spacing):
 
         brick_parameters = []
 
-        _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+        brick_length, _, brick_width, _, = self.get_brick_dimensions(brick_full, brick_half)
 
         brick_length = brick_full.shape.ysize
         brick_width = brick_full.shape.xsize
@@ -112,20 +114,31 @@ class CAEAssembly(Assembly):
             if course_is_odd == True and bricks_per_course % 2 != 0:
                 bricks_per_course -= 1
 
-            brick_parameters.append((bricks_per_course, course_is_even, course_is_odd, direction_vector))
+            brick_parameters.append((bricks_per_course, course_is_odd, direction_vector))
         return contour_curves, brick_parameters
 
 
-    def generate_wall(self, bond_type, wall_system, brick_full, brick_insulated, contour_curves, brick_spacing):
+    def generate_wall(self, 
+                      bond_type, 
+                      wall_system, 
+                      brick_full,
+                      brick_insulated,
+                      brick_half, 
+                      contour_curves, 
+                      brick_spacing, 
+                      edge_type, 
+                      shared_edge,
+                      cell_network):
 
-        contour_curves, brick_parameters = self.calculate_brick_parameters(contour_curves, brick_full, brick_insulated, brick_spacing)
+        contour_curves, brick_parameters = self.calculate_brick_parameters(contour_curves, brick_full, brick_half, brick_spacing)
 
         params = {
             "brick_full": brick_full,
-            "brick_insulated": brick_insulated
+            "brick_insulated": brick_insulated,
+            "brick_half": brick_half,
         }
         
-        for contour_curve, (bricks_per_course, course_is_even, course_is_odd, direction_vector) in zip(contour_curves, brick_parameters):
+        for contour_curve, (bricks_per_course, course_is_odd, direction_vector) in zip(contour_curves, brick_parameters):
 
             curve_midpoint = (contour_curve.PointAtStart + contour_curve.PointAtEnd) / 2
                 
@@ -146,6 +159,9 @@ class CAEAssembly(Assembly):
                     direction_vector=direction_vector,
                     wall_system=wall_system,
                     brick_spacing=brick_spacing,
+                    edge_type=edge_type,
+                    shared_edge=shared_edge,
+                    cell_network=cell_network,
                     **params)
 
             # elif bond_type == "vertical_bond":
@@ -167,36 +183,37 @@ class CAEAssembly(Assembly):
             #         wall_system=wallsystem,
             #         **params
 
-    def generate_corner(self, edge_type, wall_system, brick_full, brick_insulated, contour_points, brick_spacing):
+    # def generate_corner(self, edge_type, wall_system, brick_full, brick_insulated, contour_points, brick_spacing):
         
-        if edge_type == 'corner':
-            corner_position = contour_points[0]
-            direction_vector = Vector(0, 0, 1)
-            course_is_odd = True 
+    #     if edge_type == 'corner':
+    #         corner_position = contour_points[0]
+    #         direction_vector = Vector(0, 0, 1)
+    #         course_is_odd = True 
 
-            for corner_position in contour_points: #Iterate through all contour points
-                self.generate_outer_corner_flemish_bond(
-                    brick_full=brick_full,
-                    brick_insulated=brick_insulated,
-                    contour_points=contour_points,
-                    course_is_odd=course_is_odd,
-                    direction_vector=direction_vector,
-                    ) 
+    #         for corner_position in contour_points: #Iterate through all contour points
+    #             self.generate_outer_corner_flemish_bond(
+    #                 brick_full=brick_full,
+    #                 brick_insulated=brick_insulated,
+    #                 contour_points=contour_points,
+    #                 course_is_odd=course_is_odd,
+    #                 direction_vector=direction_vector,
+    #                 ) 
             
                         
-        elif edge_type == 'outer_wall_joint':
-            self.generate_outer_wall_joint_flemish_bond()
-            pass
-        elif edge_type == 'inner_wall_joint':
-            self.generate_inner_wall_joint_flemish_bond()
-            pass
-        else:
-            pass
+    #     elif edge_type == 'outer_wall_joint':
+    #         self.generate_outer_wall_joint_flemish_bond()
+    #         pass
+    #     elif edge_type == 'inner_wall_joint':
+    #         self.generate_inner_wall_joint_flemish_bond()
+    #         pass
+    #     else:
+    #         pass
 
     def create_brick_and_add_to_assembly(self,
                         brick_type, 
                         brick_full, 
                         brick_insulated,
+                        brick_half,
                         transform_type, 
                         frame=None,
                         ): 
@@ -229,6 +246,9 @@ class CAEAssembly(Assembly):
 
         if brick_type == "insulated":
             brick = brick_insulated
+
+        if brick_type == "half":
+            brick = brick_half
             
         my_brick = brick.transformed(Transformation.from_frame(frame))
 
@@ -499,21 +519,26 @@ class CAEAssembly(Assembly):
                     self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **params)
   
     def generate_flemish_bond(self,
-                                        brick_full,
-                                        brick_insulated,
-                                        initial_brick_position,
-                                        bricks_per_course,
-                                        course_is_odd,
-                                        direction_vector,
-                                        wall_system,
-                                        brick_spacing,
-                                        ):
+                                brick_full,
+                                brick_insulated,
+                                brick_half,
+                                initial_brick_position,
+                                bricks_per_course,
+                                course_is_odd,
+                                direction_vector,
+                                wall_system,
+                                brick_spacing,
+                                edge_type,
+                                shared_edge,
+                                cell_network
+                                ):
         
         center_brick_frame = brick_full.frame
-        _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+        brick_length, _, brick_width, brick_length_h = self.get_brick_dimensions(brick_full, brick_half)
 
         params = {"brick_full": brick_full, 
-                  "brick_insulated": brick_insulated 
+                  "brick_insulated": brick_insulated,
+                  "brick_half": brick_half,
            }
 
         shift_vector = direction_vector * ((brick_length + brick_width)/2 + brick_spacing)
@@ -525,14 +550,32 @@ class CAEAssembly(Assembly):
             brick_position = initial_brick_position + T
             brick_frame = Frame(point_to_compas(brick_position), direction_vector, center_brick_frame.yaxis)
 
+            # Handle corner case
+            if edge_type == "corner" and shared_edge:
+                edge_vector, edge_start = Component.get_edge_vector(cell_network, shared_edge)
+                
+
             # courses are even
             if not course_is_odd:
                 if brick % 2 != 0: #brick is odd
-                    # first row - header bricks
+                            # first row - header bricks
                     R1 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     T1 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing)/2)
                     current_frame = brick_frame.transformed(R1*T1)
-                    self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
+
+                    if edge_type == "corner" and brick == 1:
+                        T110 = Translation.from_vector(brick_frame.xaxis * (brick_length_h/2))
+                        current_frame = current_frame.transformed(T110)
+                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type = "translate", frame=current_frame, **params)
+
+                    elif edge_type == "corner" and brick == bricks_per_course - 2:
+                        T111 = Translation.from_vector(brick_frame.xaxis * (-brick_length_h/2))
+                        current_frame = current_frame.transformed(T111)
+                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type = "translate", frame=current_frame, **params)
+
+                    else:
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "translate", frame=current_frame, **params) 
+ 
 
                     # second row - insulated bricks - header bricks
                     T2 = Translation.from_vector(current_frame.xaxis * (brick_width + brick_spacing))
@@ -540,15 +583,29 @@ class CAEAssembly(Assembly):
                     if wall_system == "double_layer":
                         self.create_brick_and_add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = copy_current_frame, **params) 
                     
-                else: #brick is even
-                    # first row - self-shading bricks - stretcher bricks
-                    self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
+                else: #strecther bricks - first row
+                    if edge_type == "corner" and brick == 0:
+                        T221 = Translation.from_vector(brick_frame.xaxis * (brick_length_h))
+                        current_frame = brick_frame.transformed(T221)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "rotate", frame=current_frame, **params)
+
+                    elif edge_type == "corner" and brick == bricks_per_course - 1:
+                        T222 = Translation.from_vector(brick_frame.xaxis * (-brick_length_h))
+                        current_frame = brick_frame.transformed(T222)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "rotate", frame=current_frame, **params) 
+                    else:
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "rotate", frame=brick_frame, **params) 
                     
                     # second row - full bricks - stretcher bricks
                     if wall_system == "single_layer":
-                        T3 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
-                        current_frame = brick_frame.transformed(T3)
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
+                        if edge_type == "corner" and brick == 0:
+                            continue
+                        if edge_type == "corner" and brick == bricks_per_course - 1:
+                            continue
+                        else:
+                            T3 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
+                            current_frame = brick_frame.transformed(T3)
+                            self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "fixed", frame=current_frame, **params)
                     
                     if wall_system == "double_layer":
                         T4 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_width + 2 * brick_spacing))
@@ -623,7 +680,7 @@ class CAEAssembly(Assembly):
                             current_frame = current_frame.transformed(T17)
                             self.create_brick_and_add_to_assembly( brick_type = "insulated", transform_type = "fixed", frame = current_frame , **params)
 
-                elif brick == bricks_per_course - 1: # last brick
+                elif brick == bricks_per_course - 1: # last brick even courses
                     R6 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R6)
                     T18 = Translation.from_vector(current_frame.xaxis * ((brick_length + brick_spacing)/2))
@@ -632,41 +689,42 @@ class CAEAssembly(Assembly):
 
                     if wall_system == "double_layer":
                         # last insulated brick
-                        T20 = Translation.from_vector(current_frame.xaxis *((brick_width + brick_spacing)))
-                        current_frame = current_frame.transformed(T20)
+                        T19 = Translation.from_vector(current_frame.xaxis *((brick_width + brick_spacing)))
+                        current_frame = current_frame.transformed(T19)
                         self.create_brick_and_add_to_assembly(brick_type = "insulated", transform_type = "fixed", frame = current_frame, **params)
 
-    def generate_outer_corner_flemish_bond(self,
-                                        brick_full,
-                                        brick_insulated,
-                                        contour_points,
-                                        course_is_odd,
-                                        direction_vector,
-                                        ):
+
+    # def generate_outer_corner_flemish_bond(self,
+    #                                     brick_full,
+    #                                     brick_insulated,
+    #                                     contour_points,
+    #                                     course_is_odd,
+    #                                     direction_vector,
+    #                                     ):
 
 
-        _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
+    #     _, _, brick_length, _, brick_width = self.get_brick_dimensions(brick_full, brick_insulated)
 
-        params = {"brick_full": brick_full,
-                "brick_insulated": brick_insulated
-            }
+    #     params = {"brick_full": brick_full,
+    #             "brick_insulated": brick_insulated
+    #         }
         
 
-        for contour_point in contour_points:
-            corner_point = point_to_compas(contour_point)
-            corner_frame = Frame(corner_point, direction_vector)
+    #     for contour_point in contour_points:
+    #         corner_point = point_to_compas(contour_point)
+    #         corner_frame = Frame(corner_point, direction_vector)
 
-            if course_is_odd:
-                header_frame = Frame(corner_point, direction_vector)
-                R1 = Rotation.from_axis_and_angle(header_frame.yaxis, math.radians(90), point=header_frame.point)
-                #R2 = Rotation.from_axis_and_angle(header_frame.zaxis, math.radians(90), point=header_frame.point)
-                T = Translation.from_vector(header_frame.xaxis * (brick_length))
+    #         if course_is_odd:
+    #             header_frame = Frame(corner_point, direction_vector)
+    #             R1 = Rotation.from_axis_and_angle(header_frame.yaxis, math.radians(90), point=header_frame.point)
+    #             #R2 = Rotation.from_axis_and_angle(header_frame.zaxis, math.radians(90), point=header_frame.point)
+    #             T = Translation.from_vector(header_frame.xaxis * (brick_length))
 
-                current_frame = header_frame.transformed(R1*T)
-                self.create_brick_and_add_to_assembly(brick_type="full", transform_type="translate", frame=current_frame, **params)
+    #             current_frame = header_frame.transformed(R1*T)
+    #             #self.create_brick_and_add_to_assembly(brick_type="full", transform_type="translate", frame=current_frame, **params)
 
-            # else:
-            #     self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=corner_frame, **params)
+    #         # else:
+    #         #     self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=corner_frame, **params)
 
 
     def calculate_flemish_course_length(self,

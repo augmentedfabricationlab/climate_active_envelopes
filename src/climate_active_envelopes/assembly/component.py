@@ -8,8 +8,7 @@ import math as m
 #from compas_fab.robots import JointTrajectoryPoint
 
 from compas.datastructures import Mesh, CellNetwork
-from compas.geometry import Box
-from compas.geometry import Frame, Translation, Rotation, Transformation
+from compas.geometry import Frame, Vector
 from compas.datastructures import CellNetwork, Network
 from compas_rhino.conversions import mesh_to_compas
 
@@ -344,16 +343,48 @@ class CAEComponent():
                     if current_face_normal == neighbor_face_normal:
                         edge_type = 'outer wall joint'
                     elif len(edge_faces) > 2:
-                        edge_type = 'inner wall joint'
-                        
+                        edge_type = 'inner wall joint' 
                 else:
                     edge_type = 'beam'
+       
 
                 cell_network.edge_attribute(shared_edge, 'edge_type', edge_type)
 
-                u_xyz = cell_network.vertex_coordinates(u)
-                v_xyz = cell_network.vertex_coordinates(v)
-                edge_coordinates = (u_xyz, v_xyz)
+                # u_xyz = cell_network.vertex_coordinates(u)
+                # v_xyz = cell_network.vertex_coordinates(v)
+                # edge_coordinates = (u_xyz, v_xyz)
 
         return shared_edge, edge_type
 
+
+    @classmethod
+    def get_edge_vector(cls, cell_network, shared_edge):
+        """Get the vector of the shared edge.
+        
+        Parameters
+        ----------
+        cell_network : :class:`CellNetwork`
+            The cell network data structure.
+        shared_edge : tuple
+            The shared edge to select.
+        
+        Returns
+        -------
+        Vector
+            The vector of the shared edge.        
+        """
+
+        #shared_edge = cell_network.shared_edge
+        u, v = shared_edge
+
+        ux, uy, uz = cell_network.vertex_coordinates(u)
+        vx, vy, vz = cell_network.vertex_coordinates(v)
+
+        edge_start = Vector(ux, uy, uz)
+        edge_end = Vector(vx, vy, vz)
+
+        edge_vector = edge_end - edge_start
+
+        edge_vector.unitize()
+
+        return edge_vector, edge_start
