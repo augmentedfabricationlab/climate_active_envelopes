@@ -8,7 +8,7 @@ from copy import deepcopy
 from compas.datastructures import CellNetwork, Network
 
 
-class CAEReferenceModel(CellNetwork):
+class CAECellNetwork(CellNetwork):
     """A data structure for the climate active envelopes' reference model
 
     The reference model is essentially a cellnetwork consisting of a set of cells that contain the information of building component, i.e., outer walls, inner walls, slabs.
