@@ -83,19 +83,12 @@ class CAEAssembly(Assembly):
         return brick_length, brick_height, brick_width, brick_length_h
     
 
-    
+    def calculate_brick_parameters(self, contour_curves, brick_full, brick_half, brick_spacing):
 
-
-
-    def calculate_brick_parameters(self, contour_curves, brick_full, brick_half, brick_spacing, current_face, edge_type):
-
-        brick_parameters = []
 
         brick_length, _, brick_width, _, = self.get_brick_dimensions(brick_full, brick_half)
 
-        brick_length = brick_full.shape.ysize
-        brick_width = brick_full.shape.xsize
-
+        brick_parameters = []
         for course, contour_curve in enumerate(contour_curves):
 
             # Skip last course
@@ -125,7 +118,6 @@ class CAEAssembly(Assembly):
 
             brick_parameters.append((bricks_per_course, course_is_odd, direction_vector, has_edge_curve))
         return contour_curves, brick_parameters
-
 
     def generate_wall(self, 
                       bond_type, 
