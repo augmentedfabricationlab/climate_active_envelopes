@@ -471,13 +471,15 @@ class CAECellNetwork(CellNetwork):
         pass
     
     
-    def classify_wall_face_edges(self, cell_network, face_key, course_height):
+    def generate_assembly_data_from_cellnetwork(self, cell_network, course_height):
         """Calculate the properties of the wall faces in the cell network.
 
         Parameters
         ----------
         cell_network : :class:`CellNetwork`
             The cell network data structure.
+        face : int
+            The current_face to select.
         course_height : float
             The height of the course.
         
@@ -486,187 +488,81 @@ class CAECellNetwork(CellNetwork):
         dict
             A dictionary of wall face edges.
         """
-
+        face = cell_network.current_face
        # Get the edges of the current face
-        face_and_edges = self.select_face_and_get_adjacent_edges(cell_network, face_key)
-
+        face_and_edges = self.select_face_and_get_adjacent_edges(cell_network, face)
+        
+        # Get the height of the vertical edge
         vertical_edges = []
         for edge_info in face_and_edges['face_edges']:
             if edge_info['edge_type'] in ['joint', 'corner']:
                 vertical_edges.append(edge_info['edge'])
+        edge_height = abs(cell_network.edge_length(vertical_edges[0]))
 
-        # Get the length of the first vertical edge
-        vertical_edge_length = cell_network.edge_length(vertical_edges[0])
 
-        # Calculate the number of courses
-        num_courses = int(vertical_edge_length / course_height)
-        for course in range(num_courses + 1):
-            course_is_even = course % 2 == 0
-            course_is_odd = course % 2 != 0
-
+        # Get the length of the horizontal edge
         horizontal_edges = []
         for edge_info in face_and_edges['face_edges']:
             if edge_info['edge_type'] == 'beam':
                 horizontal_edges.append(edge_info['edge'])
+        edge_length = abs(cell_network.edge_length(horizontal_edges[0]))
 
         # Get the direction vector of the first horizontal edge
         direction_vector = cell_network.edge_vector(horizontal_edges[0])
         direction_vector.unitize()
 
         # Identify the starting and ending edges
-        starting_edge = vertical_edges[0]
-        ending_edge = vertical_edges[-1]
+        start_edge = vertical_edges[0]
+        end_edge = vertical_edges[-1]
 
         # Get the edge types of the starting and ending edges
-        starting_edge_type = cell_network.edge_attribute(starting_edge, 'edge_type')
-        ending_edge_type = cell_network.edge_attribute(ending_edge, 'edge_type')
-
-        return {
-            'vertical_edges': vertical_edges,
-            'direction_vector': direction_vector,
-            'starting_edge': starting_edge,
-            'starting_edge_type': starting_edge_type,
-            'ending_edge': ending_edge,
-            'ending_edge_type': ending_edge_type
-        }
-
-
-    def create_contour_curves(self, cell_network, course_height):
-        """Create contour curves from the mesh of the face."""
-
-        # Get the vertices of the current face
-        vertices = cell_network.face_vertices(cell_network.current_face)
+        start_edge_type = cell_network.edge_attribute(start_edge, 'edge_type')
+        end_edge_type = cell_network.edge_attribute(end_edge, 'edge_type')
 
         # Get the start and end points of the face
-        start_point = cell_network.vertex_coordinates(vertices[0])
-        start_pt = point_to_rhino(start_point)
+        start_point = cell_network.edge_start(start_edge)
+        end_point = cell_network.edge_end(start_edge)
+        if start_point[2] > end_point[2]:
+            start_point, end_point = end_point, start_point
 
-        end_point = cell_network.vertex_coordinates(vertices[-1])
+        # Convert into rhino points
+        start_pt = point_to_rhino(start_point)
         end_pt = point_to_rhino(end_point)
 
         # Get the rhino mesh of the current face
-        face_mesh = cell_network.faces_to_mesh([cell_network.current_face])
-        mesh = mesh_to_rhino(face_mesh) 
-
+        face_mesh = cell_network.faces_to_mesh([face])
+        mesh = mesh_to_rhino(face_mesh)
 
         # Create contour curves from the mesh
         contour_curves = rg.Mesh.CreateContourCurves(mesh, start_pt, end_pt, course_height)
 
-        # Add contour curves as attribute to the current face
-        #cell_network.face_attribute(cell_network.current_face, 'contour_curves', contour_curves)
+        # Calculate the number of courses
+        odd_courses = []
+        num_courses = int(edge_height / course_height)
+        for course in range(num_courses + 1):
+            course_is_even = course % 2 == 0
+            course_is_odd = course % 2 != 0
+            odd_courses.append(course_is_odd)
 
-        # # Get the edges of the current face
-        # face_edges, edge_types = self.get_edges_by_face(cell_network, cell_network.current_face)
+        # Add starting and ending edges and their types as attributes to the current face
+        cell_network.face_attribute(face, 'start_edge', start_edge)
+        cell_network.face_attribute(face, 'start_edge_type', start_edge_type)
+        cell_network.face_attribute(face, 'end_edge', end_edge)
+        cell_network.face_attribute(face, 'end_edge_type', end_edge_type)
+        #cell_network.face_attribute(face_key, 'direction_vector', direction_vector)
+        #cell_network.face_attribute(face_key, 'edge_height', edge_height)
+        cell_network.face_attribute(face, 'odd_courses', odd_courses)
+        #cell_network.face_attribute(face_key, 'contour_curves', contour_curves)
 
-        # # Classify vertical edges based on their type and whether they are at the start or end point
-        # start_point_edges = []
-        # end_point_edges = []
-        # for edge in face_edges:
-        #     u, v = edge
-        #     ux, uy, uz = cell_network.vertex_coordinates(u)
-        #     vx, vy, vz = cell_network.vertex_coordinates(v)
-
-        #     if ux == vx and uy == vy:  # Vertical edge
-        #         edge_type = cell_network.edge_attribute(edge, 'edge_type')
-        #         if (ux, uy, uz) == start_point or (vx, vy, vz) == start_point:
-        #             start_point_edges.append(edge_type)
-        #         if (ux, uy, uz) == end_point or (vx, vy, vz) == end_point:
-        #             end_point_edges.append(edge_type)
-
-        # # Add classified edges to the face attributes
-        # cell_network.face_attribute(cell_network.current_face, 'start_point_edges', start_point_edges)
-        # cell_network.face_attribute(cell_network.current_face, 'end_point_edges', end_point_edges)
-
-        return contour_curves
-
-
-
-
-
-            # # Get the edges of the current face
-            # face_and_edges = self.select_face_and_get_adjacent_edges(cell_network, face_key)
-
-            # vertical_edges = []
-            # for edge_info in face_and_edges['face_edges']:
-            #     if edge_info['edge_type'] in ['joint', 'corner']:
-            #         vertical_edges.append(edge_info['edge'])
-
-            # # Get the length of the first vertical edge
-            # vertical_edge_length = cell_network.edge_length(vertical_edges[0])
-
-            # # Calculate the number of courses
-            # num_courses = int(vertical_edge_length / course_height)
-            # for course in range(num_courses + 1):
-            #     course_is_even = course % 2 == 0
-            #     course_is_odd = course % 2 != 0
-
-            # horizontal_edges = []
-            # for edge_info in face_and_edges['face_edges']:
-            #     if edge_info['edge_type'] == 'beam':
-            #         horizontal_edges.append(edge_info['edge'])
-
-            # # Get the direction vector of the first horizontal edge
-            # direction_vector = cell_network.edge_vector(horizontal_edges[0])
-            # direction_vector.unitize()
-
-            # # Identify the starting and ending edges
-            # starting_edge = vertical_edges[0]
-            # ending_edge = vertical_edges[-1]
-
-            # # Get the edge types of the starting and ending edges
-            # starting_edge_type = cell_network.edge_attribute(starting_edge, 'edge_type')
-            # ending_edge_type = cell_network.edge_attribute(ending_edge, 'edge_type')
-
-            # # Get the vertices of the current face
-            # vertices = cell_network.face_vertices(face_key)
-
-            # # Get the start and end points of the face
-            # start_point = cell_network.vertex_coordinates(vertices[0])
-            # start_pt = point_to_rhino(start_point)
-
-            # end_point = cell_network.vertex_coordinates(vertices[-1])
-            # end_pt = point_to_rhino(end_point)
-
-            # # Get the rhino mesh of the current face
-            # face_mesh = cell_network.faces_to_mesh([face_key])
-            # mesh = mesh_to_rhino(face_mesh)
-
-            # # Create contour curves from the mesh
-            # contour_curves = rg.Mesh.CreateContourCurves(mesh, start_pt, end_pt, course_height)
-
-            # # Add contour curves as attribute to the current face
-            # cell_network.face_attribute(face_key, 'contour_curves', contour_curves)
-
-            # # Add starting and ending edges and their types as attributes to the current face
-            # cell_network.face_attribute(face_key, 'starting_edge', starting_edge)
-            # cell_network.face_attribute(face_key, 'starting_edge_type', starting_edge_type)
-            # cell_network.face_attribute(face_key, 'ending_edge', ending_edge)
-            # cell_network.face_attribute(face_key, 'ending_edge_type', ending_edge_type)
-
-            # return {
-            #     'vertical_edges': vertical_edges,
-            #     'direction_vector': direction_vector,
-            #     'starting_edge': starting_edge,
-            #     'starting_edge_type': starting_edge_type,
-            #     'ending_edge': ending_edge,
-            #     'ending_edge_type': ending_edge_type,
-            #     'contour_curves': contour_curves
-            # }
-
-
-
- 
-
-        # # Calculate the number of courses
-        # num_courses = int(edge_length / course_height)
-        # for course in range(num_courses + 1):
-        #     course_is_even = course % 2 == 0
-        #     course_is_odd = course % 2 != 0
-    
-
-
-
-
-
-
-    
+        return {
+            'face': face_and_edges['selected_face'],
+            'face_type': face_and_edges['face_type'],
+            'start_edge': start_edge,
+            'start_edge_type': start_edge_type,
+            'end_edge': end_edge,
+            'end_edge_type': end_edge_type,
+            'direction_vector': direction_vector,
+            'edge_height': edge_height,
+            'edge_length': edge_length,
+            'contour_curves': contour_curves
+        } 
