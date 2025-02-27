@@ -500,9 +500,9 @@ class CAECellNetwork(CellNetwork):
         edge_height = abs(cell_network.edge_length(vertical_edges[0]))
 
         # Identify the starting and ending edges
-        start_edge = vertical_edges[0]
-        end_edge = vertical_edges[-1]
-
+        start_edge = vertical_edges[-1]
+        end_edge = vertical_edges[0]
+        
         # Get the edge types of the starting and ending edges
         start_edge_type = cell_network.edge_attribute(start_edge, 'edge_type')
         end_edge_type = cell_network.edge_attribute(end_edge, 'edge_type')
@@ -521,7 +521,11 @@ class CAECellNetwork(CellNetwork):
 
         # Create contour curves from the mesh
         contour_curves = rg.Mesh.CreateContourCurves(mesh, start_pt, end_pt, course_height)
-
+        # for curve in contour_curves:
+        #     curve_start = curve.PointAtStart
+        #     curve_end = curve.PointAtEnd
+        #     if curve_start.DistanceTo(start_pt) > curve_end.DistanceTo(start_pt):
+        #         curve.Reverse()
 
         # Get the length of the horizontal edge
         horizontal_edges = []
@@ -530,25 +534,19 @@ class CAECellNetwork(CellNetwork):
                 horizontal_edges.append(edge['edge'])
         edge_length = abs(cell_network.edge_length(horizontal_edges[0]))
 
+        curve_start_point = cell_network.edge_start(horizontal_edges[-1])
+        curve_end_point = start_point
+
         # Get the direction vector of the first horizontal edge
         direction_vector = cell_network.edge_vector(horizontal_edges[0])
         direction_vector.unitize()
-
-
-        # # Calculate the number of courses
-        # odd_courses = []
-        # num_courses = int(edge_height / course_height)
-        # for course in range(num_courses + 1):
-        #     course_is_even = course % 2 == 0
-        #     course_is_odd = course % 2 != 0
-        #     odd_courses.append(course_is_odd)
 
         # Add starting and ending edges and their types as attributes to the current face
         cell_network.face_attribute(face, 'start_edge', start_edge)
         cell_network.face_attribute(face, 'start_edge_type', start_edge_type)
         cell_network.face_attribute(face, 'end_edge', end_edge)
         cell_network.face_attribute(face, 'end_edge_type', end_edge_type)
-        #cell_network.face_attribute(face_key, 'direction_vector', direction_vector)
+        cell_network.face_attribute(face, 'direction_vector', direction_vector)
         #cell_network.face_attribute(face_key, 'edge_height', edge_height)
         #cell_network.face_attribute(face, 'odd_courses', odd_courses)
         #cell_network.face_attribute(face_key, 'contour_curves', contour_curves)
@@ -564,6 +562,6 @@ class CAECellNetwork(CellNetwork):
             'edge_height': edge_height,
             'edge_length': edge_length,
             'contour_curves': contour_curves,
-            #'curve_start_point': curve_start_point,
-            #'curve_end_point' : curve_end_point,
+            'curve_start_point': curve_start_point,
+            'curve_end_point': curve_end_point,
         } 
