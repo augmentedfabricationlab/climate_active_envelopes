@@ -9,7 +9,7 @@ import math as m
 
 from compas.datastructures import CellNetwork
 from compas.geometry import Frame, Vector
-from compas_rhino.conversions import mesh_to_compas, point_to_rhino, mesh_to_rhino
+from compas_rhino.conversions import mesh_to_compas, point_to_rhino, mesh_to_rhino, vector_to_rhino
 import Rhino.Geometry as rg
 
 class CAECellNetwork(CellNetwork):
@@ -373,22 +373,31 @@ class CAECellNetwork(CellNetwork):
 
         edge_types = self.get_edge_types(cell_network)
 
-        # Create a dictionary to store the selected face and its adjacent edges
         face_and_edges = {
             'selected_face': current_face,
             'face_type': face_type,
-            'face_edges': [],
-            #'vertical_edges': edge_types['vertical_edges'],
-            #'horizontal_edges': edge_types['horizontal_edges']
+            #'face_edges': [],
+            'vertical_edges': [],
+            'horizontal_edges': []
         }
 
-        #Add edge_type for each face_edge
+        # Add edge_type for each face_edge and classify them as vertical or horizontal
         for edge in face_edges:
             edge_type = cell_network.edge_attribute(edge, 'edge_type')
-            face_and_edges['face_edges'].append({
-                'edge': edge,
-                'edge_type': edge_type
-            })
+            # face_and_edges['face_edges'].append({
+            #     'edge': edge,
+            #     'edge_type': edge_type
+            # })
+            if edge_type in ['joint', 'corner']:  # Assuming 'joint' and 'corner' are vertical
+                face_and_edges['vertical_edges'].append({
+                    'edge': edge,
+                    'edge_type': edge_type
+                })
+            else:  # Assuming other types are horizontal
+                face_and_edges['horizontal_edges'].append({
+                    'edge': edge,
+                    'edge_type': edge_type
+                })
 
         return face_and_edges
 
@@ -489,57 +498,38 @@ class CAECellNetwork(CellNetwork):
             A dictionary of wall face edges.
         """
         face = cell_network.current_face
-       # Get the edges of the current face
-        face_and_edges = self.select_face_and_get_adjacent_edges(cell_network, face)
+        face_normal = vector_to_rhino(cell_network.face_normal(face))
+
+        face_edges_data = self.select_face_and_get_adjacent_edges(cell_network, face)
         
         # Get the height of the vertical edge
-        vertical_edges = []
-        for edge in face_and_edges['face_edges']:
-            if edge['edge_type'] in ['joint', 'corner']:
-                vertical_edges.append(edge['edge'])
+        vertical_edges = [edge['edge'] for edge in face_edges_data['vertical_edges']]
         edge_height = abs(cell_network.edge_length(vertical_edges[0]))
 
         # Identify the starting and ending edges
         start_edge = vertical_edges[-1]
         end_edge = vertical_edges[0]
-        
-        # Get the edge types of the starting and ending edges
         start_edge_type = cell_network.edge_attribute(start_edge, 'edge_type')
         end_edge_type = cell_network.edge_attribute(end_edge, 'edge_type')
 
-        # Get the start and end points of the face
-        start_point = cell_network.edge_start(start_edge)
-        end_point = cell_network.edge_end(start_edge)
-
-        # Convert into rhino points
-        start_pt = point_to_rhino(start_point)
-        end_pt = point_to_rhino(end_point)
-
-        # Get the rhino mesh of the current face
-        face_mesh = cell_network.faces_to_mesh([face])
-        mesh = mesh_to_rhino(face_mesh)
-
-        # Create contour curves from the mesh
-        contour_curves = rg.Mesh.CreateContourCurves(mesh, start_pt, end_pt, course_height)
-        # for curve in contour_curves:
-        #     curve_start = curve.PointAtStart
-        #     curve_end = curve.PointAtEnd
-        #     if curve_start.DistanceTo(start_pt) > curve_end.DistanceTo(start_pt):
-        #         curve.Reverse()
-
         # Get the length of the horizontal edge
-        horizontal_edges = []
-        for edge in face_and_edges['face_edges']:
-            if edge['edge_type'] == 'beam':
-                horizontal_edges.append(edge['edge'])
+        horizontal_edges = [edge['edge'] for edge in face_edges_data['horizontal_edges']]
         edge_length = abs(cell_network.edge_length(horizontal_edges[0]))
 
-        curve_start_point = cell_network.edge_start(horizontal_edges[-1])
-        curve_end_point = start_point
-
         # Get the direction vector of the first horizontal edge
-        direction_vector = cell_network.edge_vector(horizontal_edges[0])
-        direction_vector.unitize()
+        horizontal_edge_vector = cell_network.edge_vector(horizontal_edges[0])
+        horizontal_edge_vector.unitize()
+
+        # Handle different orientations explicitly
+        direction_vector = vector_to_rhino(horizontal_edge_vector)
+
+        curve_start_point = cell_network.edge_start(horizontal_edges[0])
+        curve_end_point = cell_network.edge_end(horizontal_edges[0])
+
+        print(f"Initial curve_start_point: {edge_length}")
+        print(f"Initial curve_end_point: {edge_height}")
+
+        num_courses = abs(edge_height / course_height)
 
         # Add starting and ending edges and their types as attributes to the current face
         cell_network.face_attribute(face, 'start_edge', start_edge)
@@ -547,13 +537,10 @@ class CAECellNetwork(CellNetwork):
         cell_network.face_attribute(face, 'end_edge', end_edge)
         cell_network.face_attribute(face, 'end_edge_type', end_edge_type)
         cell_network.face_attribute(face, 'direction_vector', direction_vector)
-        #cell_network.face_attribute(face_key, 'edge_height', edge_height)
-        #cell_network.face_attribute(face, 'odd_courses', odd_courses)
-        #cell_network.face_attribute(face_key, 'contour_curves', contour_curves)
 
         return {
-            'face': face_and_edges['selected_face'],
-            'face_type': face_and_edges['face_type'],
+            'face': face_edges_data['selected_face'],
+            'face_type': face_edges_data['face_type'],
             'start_edge': start_edge,
             'start_edge_type': start_edge_type,
             'end_edge': end_edge,
@@ -561,7 +548,8 @@ class CAECellNetwork(CellNetwork):
             'direction_vector': direction_vector,
             'edge_height': edge_height,
             'edge_length': edge_length,
-            'contour_curves': contour_curves,
+            'num_courses': num_courses,
             'curve_start_point': curve_start_point,
             'curve_end_point': curve_end_point,
+            'face_normal': face_normal
         } 

@@ -10,7 +10,7 @@ from compas_rhino.conversions import plane_to_compas_frame, point_to_compas, mes
 
 from assembly_information_model import Assembly
 from .part import CAEPart as Part
-from .cellnetwork import CAECellNetwork as CellNetwork
+#from .reference_model import CAECellNetwork as CellNetwork
 
 
 import math
@@ -101,21 +101,18 @@ class CAEAssembly(Assembly):
 
         # get the assembly data from the cell network
         assembly_data = cell_network.generate_assembly_data_from_cellnetwork(cell_network, course_height)
-        contour_curves = assembly_data['contour_curves']
-        compas_direction_vector = assembly_data['direction_vector']
+
+        direction_vector = assembly_data['direction_vector']
         edge_length = assembly_data['edge_length']
         start_edge_type = assembly_data['start_edge_type']
         end_edge_type = assembly_data['end_edge_type']
-        #course_is_odd = cell_network.face_attribute(cell_network.current_face, 'odd_courses')
+        num_courses = assembly_data['num_courses']
+        curve_start_point = assembly_data['curve_start_point']
+        curve_end_point = assembly_data['curve_end_point']
 
 
-        # Convert the direction vector to Rhino
-        normalize_vector(compas_direction_vector)
-        compas_direction_vector = Vector(abs(compas_direction_vector[0]), abs(compas_direction_vector[1]), abs(compas_direction_vector[2]))
-        direction_vector = vector_to_rhino(compas_direction_vector)
-        
         course_brick_data = []
-        for course, contour_curve in enumerate(contour_curves):    
+        for course in range(math.ceil(num_courses + 1)):    
 
             # Check if the course is odd         
             course_is_odd = course % 2 != 0
@@ -123,10 +120,12 @@ class CAEAssembly(Assembly):
             # Calculate the number of bricks per course
             bricks_per_course = math.floor(edge_length / ((brick_width + brick_length) / 2 + brick_spacing))
 
-            curves_start_point = contour_curve.PointAtStart
-            curves_end_point = contour_curve.PointAtEnd
+            # Adjust the z-coordinate of the curves_start_point for each course
+            adjusted_start_point = rg.Point3d(curve_start_point[0], curve_start_point[1], curve_start_point[2] + course * course_height)
+            adjusted_end_point = rg.Point3d(curve_end_point[0], curve_end_point[1], curve_end_point[2] + course * course_height)
+
             # Calculate the midpoint of the contour curve
-            curve_midpoint = (contour_curve.PointAtStart + contour_curve.PointAtEnd) / 2
+            curve_midpoint = point_to_rhino((adjusted_start_point + adjusted_end_point) / 2)
             
             # Number of bricks per course are always odd
             if bricks_per_course % 2 == 0:
@@ -136,11 +135,10 @@ class CAEAssembly(Assembly):
             if course_is_odd and bricks_per_course % 2 != 0:
                 bricks_per_course -= 1
 
-            course_brick_data.append((bricks_per_course, course_is_odd, direction_vector, 
-                                      start_edge_type, end_edge_type, curve_midpoint, curves_start_point, curves_end_point))
+            course_brick_data.append((bricks_per_course, course_is_odd, direction_vector, start_edge_type,
+                                    end_edge_type, curve_midpoint, adjusted_start_point, adjusted_end_point))
 
         return course_brick_data
-
 
     def generate_wall(self, 
                       cell_network,
@@ -153,7 +151,7 @@ class CAEAssembly(Assembly):
         course_brick_data = self.compute_brick_layout(cell_network, course_height, brick_spacing)
         
         for data in course_brick_data:
-            bricks_per_course, course_is_odd, direction_vector, start_edge_type, end_edge_type, curve_midpoint, curves_start_point, curves_end_point = data
+            bricks_per_course, course_is_odd, direction_vector, start_edge_type, end_edge_type, curve_midpoint, adjusted_start_point, adjusted_end_point  = data
 
             if bond_type == "flemish_bond":
                 # Calculate the total length of the course
@@ -162,11 +160,11 @@ class CAEAssembly(Assembly):
                     brick_spacing=brick_spacing,
                     course_is_odd=course_is_odd)                              
 
-                # # Adjust the initial brick position based on corner detection
+                # Adjust the initial brick position based on corner detection
                 # if start_edge_type == "corner":
-                #     initial_brick_position = curves_start_point
+                #     initial_brick_position = adjusted_start_point
                 # if end_edge_type == "corner":
-                #     initial_brick_position = curves_end_point - (direction_vector * (total_length))
+                #     initial_brick_position = adjusted_end_point - (direction_vector * (total_length))
                 # else:
                 initial_brick_position = curve_midpoint - (direction_vector * (total_length / 2))
 
@@ -234,6 +232,7 @@ class CAEAssembly(Assembly):
         gripping_frame.transform(R)
         # Set the gripping frame of the brick 
         my_brick.gripping_frame = gripping_frame
+        my_brick.frame = frame
 
         self.add_part(my_brick, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
 
@@ -539,8 +538,7 @@ class CAEAssembly(Assembly):
                     if course_is_odd:
                         T += shift_vector
 
-                    brick_position = initial_brick_position + T
-                    
+                    brick_position = initial_brick_position + T                    
                     if direction_vector[1] in [-1, 1]:
                         brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
                     else:
@@ -590,13 +588,11 @@ class CAEAssembly(Assembly):
                     T += shift_vector
 
                 brick_position = initial_brick_position + T
-
                 if direction_vector[1] in [-1, 1]:
                     brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
                 else:
                     brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
                 
-                #brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
                 if brick == 0:  # first brick in course
                     R3 = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), point=brick_frame.point)  
                     current_frame = brick_frame.transformed(R3)
@@ -765,11 +761,6 @@ class CAEAssembly(Assembly):
 
         brick_length, _, brick_width, _ = self.get_brick_dimensions()
 
-        #total_length = 0.0
-
-        #if bricks_per_course <= 0:
-           # return 0.0
-
         # Calculate the total length based on the pattern
         if course_is_odd:
             # Odd courses start and end with a header, alternate in between
@@ -779,11 +770,6 @@ class CAEAssembly(Assembly):
             total_length = (bricks_per_course // 2) * (brick_length + brick_width + 2 * brick_spacing)
 
         return total_length
-    
-
-
-
-
 
     def apply_gradient(self, values, keys, transform_type):
         """
@@ -822,3 +808,218 @@ class CAEAssembly(Assembly):
                 T = R * Translation.from_vector(translation_vector)
             
             part.transform(T)
+
+    def add_part(self, part, key=None, attr_dict=None, **kwargs):
+        """Add a part to the assembly.
+
+        Parameters
+        ----------
+        part : :class:`compas.datastructures.Part`
+            The part to add.
+        key : int | str, optional
+            The identifier of the part in the assembly.
+            Note that the key is unique only in the context of the current assembly.
+            Nested assemblies may have the same `key` value for one of their parts.
+            Default is None in which case the key will be an automatically assigned integer value.
+        **kwargs: dict[str, Any], optional
+            Additional named parameters collected in a dict.
+
+        Returns
+        -------
+        int | str
+            The identifier of the part in the current assembly graph.
+
+        """
+        if part.guid in self._parts:
+            raise AssemblyError("Part already added to the assembly")
+        
+        key = self.graph.add_node(key=key, part=part, x=part.frame.point.x, y=part.frame.point.y, z=part.frame.point.z, **kwargs)
+        part.key = key
+        self._parts[part.guid] = part.key
+
+        if attr_dict:
+            for attr, value in attr_dict.items():
+                part.attributes[attr] = value
+
+        return key
+    
+    def add_connection(self, a_key, b_key, **kwargs):
+        """Add a connection between two parts.
+
+        Parameters
+        ----------
+        a_key : int | str
+            The identifier of the "from" part.
+        b_key : int | str
+            The identifier of the "to" part.
+        **kwargs : dict[str, Any], optional
+            Attribute dict compiled from named arguments.
+
+        Returns
+        -------
+        tuple[int | str, int | str]
+            The tuple of node identifiers that identifies the connection.
+
+        Raises
+        ------
+        :class:`AssemblyError`
+            If `a_key` and/or `b_key` are not in the assembly.
+
+        """
+        error_msg = "Both parts have to be added to the assembly before a connection can be created."
+        if not self.graph.has_node(a_key) or not self.graph.has_node(b_key):
+            raise AssemblyError(error_msg)
+        #print(f"Adding connection between {a_key} and {b_key}")
+        return self.graph.add_edge(a_key, b_key, **kwargs)
+
+
+
+    def assembly_courses(self, tol=0.01):
+        """Identify the courses in a wall of bricks.
+
+        Parameters
+        ----------
+        tol : float, optional
+            Tolerance for identifying courses.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            pass
+
+        """
+        courses = []
+
+        # all element keys
+        elements = set(self.graph.nodes())
+        #print(f"All element keys: {elements}")
+
+        # base course keys
+        c_min = min(self.graph.nodes_attribute('z'))
+        #print(f"Minimum z value: {c_min}")
+
+        base = set()
+        for e in elements:
+            z = self.graph.node_attribute(key=e, name='z')
+            #print(f"Element key: {e}, z value: {z}")
+            if abs(z - c_min) < tol:
+                base.add(e)
+
+        if base:
+            courses.append(list(base))
+            elements -= base
+
+            while elements:
+                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
+                base = set()
+                for e in elements:
+                    z = self.graph.node_attribute(key=e, name='z')
+                    if abs(z - c_min) < tol:
+                        base.add(e)
+
+                if base:
+                    courses.append(list(base))
+                    elements -= base
+
+        # Sort courses by their minimum z value
+        courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
+
+        # Sort nodes within each course by proximity using graph.neighbors
+        for i, course in enumerate(courses):
+            sorted_course = []
+            remaining_nodes = set(course)
+            current_node = remaining_nodes.pop()
+            sorted_course.append(current_node)
+
+            while remaining_nodes:
+                neighbors = set(self.graph.neighbors(current_node))
+                next_node = neighbors.intersection(remaining_nodes)
+                if next_node:
+                    next_node = next_node.pop()
+                    sorted_course.append(next_node)
+                    remaining_nodes.remove(next_node)
+                    current_node = next_node
+                else:
+                    # If no direct neighbor is found, pick the closest remaining node
+                    closest_node = min(remaining_nodes, key=lambda node: self.distance(current_node, node))
+                    sorted_course.append(closest_node)
+                    remaining_nodes.remove(closest_node)
+                    current_node = closest_node
+
+                courses[i] = sorted_course
+
+        return courses
+
+    def distance(self, node1, node2):
+        """Calculate the Euclidean distance between two nodes."""
+        x1, y1, z1 = self.graph.node_attributes(node1, ['x', 'y', 'z'])
+        x2, y2, z2 = self.graph.node_attributes(node2, ['x', 'y', 'z'])
+        return ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** 0.5
+    
+        # def assembly_courses(self, tol=0.01):
+    #     """Identify the courses in a wall of bricks.
+
+    #     Parameters
+    #     ----------
+    #     tol : float, optional
+    #         Tolerance for identifying courses.
+
+    #     Examples
+    #     --------
+    #     .. code-block:: python
+
+    #         pass
+
+    #     """
+        # courses = []
+
+        # # all element keys
+        # elements = set(self.graph.nodes())
+        # #print(f"All element keys: {elements}")
+
+        # # base course keys
+        # c_min = min(self.graph.nodes_attribute('z'))
+        # #print(f"Minimum z value: {c_min}")
+
+        # base = set()
+        # for e in elements:
+        #     z = self.graph.node_attribute(key=e, name='z')
+        #     #print(f"Element key: {e}, z value: {z}")
+        #     if abs(z - c_min) < tol:
+        #         base.add(e)
+
+        # if base:
+        #     courses.append(list(base))
+        #     elements -= base
+
+        #     while elements:
+        #         c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
+        #         base = set()
+        #         for e in elements:
+        #             z = self.graph.node_attribute(key=e, name='z')
+        #             if abs(z - c_min) < tol:
+        #                 base.add(e)
+
+        #         if base:
+        #             courses.append(list(base))
+        #             elements -= base
+
+        # # Sort courses by their minimum z value
+        # courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
+
+        # # Print the sorted courses for debugging
+        # for i, course in enumerate(courses):
+        #     course_z_values = [self.graph.node_attribute(key, 'z') for key in course]
+        #     #print(f"Course {i}: {course} with z values {course_z_values}")
+
+        # # assign course id's to the corresponding blocks
+        # for i, course in enumerate(courses):
+        #     self.graph.nodes_attribute(name='course', value=i, keys=course)
+        #     # Print the course assignment for debugging
+        #     for key in course:
+        #         assigned_course = self.graph.node_attribute(key, 'course')
+        #         #print(f"Node {key} assigned to course {assigned_course}")
+
+        # #print("Reached the end of the method")
+        # return courses
