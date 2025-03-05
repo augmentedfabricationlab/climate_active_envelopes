@@ -8,6 +8,8 @@ from compas.datastructures import AssemblyError
 from compas.geometry import Frame, Translation, Rotation, Transformation, Vector, Point, normalize_vector
 from compas_rhino.conversions import plane_to_compas_frame, point_to_compas, mesh_to_rhino, point_to_rhino, vector_to_rhino
 
+from collections import deque
+
 from assembly_information_model import Assembly
 from .part import CAEPart as Part
 #from .reference_model import CAECellNetwork as CellNetwork
@@ -872,8 +874,6 @@ class CAEAssembly(Assembly):
         #print(f"Adding connection between {a_key} and {b_key}")
         return self.graph.add_edge(a_key, b_key, **kwargs)
 
-
-
     def assembly_courses(self, tol=0.01):
         """Identify the courses in a wall of bricks.
 
@@ -942,7 +942,7 @@ class CAEAssembly(Assembly):
                     current_node = next_node
                 else:
                     # If no direct neighbor is found, pick the closest remaining node
-                    closest_node = min(remaining_nodes, key=lambda node: self.distance(current_node, node))
+                    closest_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
                     sorted_course.append(closest_node)
                     remaining_nodes.remove(closest_node)
                     current_node = closest_node
@@ -951,13 +951,109 @@ class CAEAssembly(Assembly):
 
         return courses
 
-    def distance(self, node1, node2):
-        """Calculate the Euclidean distance between two nodes."""
-        x1, y1, z1 = self.graph.node_attributes(node1, ['x', 'y', 'z'])
-        x2, y2, z2 = self.graph.node_attributes(node2, ['x', 'y', 'z'])
-        return ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** 0.5
-    
+    def distance_xy(self, node1, node2):
+        """Calculate the distance between two nodes in the x and y directions."""
+        x1, y1, _ = self.graph.node_attributes(node1, ['x', 'y', 'z'])
+        x2, y2, _ = self.graph.node_attributes(node2, ['x', 'y', 'z'])
+        return abs(x1 - x2) + abs(y1 - y2)
+
+
+    def assembly_building_sequence(assembly, key):
+        """Determine the sequence of bricks that need to be assembled to be able to
+        place a target brick.
+
+        Parameters
+        ----------
+        assembly : Assembly
+            An assembly data structure.
+        key : hashable
+            The block identifier.
+
+        Returns
+        -------
+        list
+            A sequence of block identifiers.
+        Notes
+        -----
+        This will only work for properly supported *wall* assemblies of which the
+        interfaces and courses have been identified.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            # this code only works in Rhino
+
+            assembly = Assembly.from_json(...)
+
+            placed = list(assembly.nodes_where({'is_placed': True}))
+
+            artist = AssemblyArtist(assembly, layer="Assembly")
+
+            artist.clear_layer()
+            artist.draw_nodes()
+            artist.draw_blocks(show_faces=False, show_edges=True)
+
+            if placed:
+                artist.draw_blocks(keys=placed, show_faces=True, show_edges=False)
+
+            artist.redraw()
+
+            key = AssemblyHelper.select_node(assembly)
+
+            sequence = assembly_block_building_sequence(assembly, key)
+
+            print(sequence)
+
+            keys = list(set(sequence) - set(placed))
+
+            artist.draw_blocks(keys=keys, show_faces=True, show_edges=False)
+            artist.redraw()
+
+        """
+
+        course = assembly.network.node_attribute(key, 'course')
+
+        if course is None:
+            raise Exception("The courses of the assembly have not been identified.")
+
+        sequence = []
+        seen = set()
+        tovisit = deque([(key, course + 1)])
+
+        while tovisit:
+            k, course_above = tovisit.popleft()
+
+            if k not in seen:
+                seen.add(k)
+                course = assembly.network.node_attribute(k, 'course')
+
+                if course_above == course + 1:
+                    sequence.append(k)
+                    for nbr in assembly.network.neighbors(k):
+                        if nbr not in seen:
+                            tovisit.append((nbr, course))
+
+        return sequence[::-1]
+
+
+
+
+
+
+
+
+
+
+
+
         # def assembly_courses(self, tol=0.01):
+
+
+
+
+
+
     #     """Identify the courses in a wall of bricks.
 
     #     Parameters
