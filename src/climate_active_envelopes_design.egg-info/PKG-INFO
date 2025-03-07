@@ -1,0 +1,40 @@
+Metadata-Version: 2.1
+Name: climate_active_envelopes_design
+Version: 0.1.0
+Summary: Design tool for generating climate active brick geometries
+Home-page: https://github.com/augmentedfabricationlab/climate_active_envelopes_design
+Author: Augmented Fabrication Lab
+Author-email: doerfler@tum.de
+License: MIT license
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: Unix
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: Implementation :: CPython
+Classifier: Topic :: Scientific/Engineering
+License-File: LICENSE
+License-File: AUTHORS.rst
+
+[Link](https://augmentedfabricationlab.github.io/climate_active_envelopes/)
+
+Changelog
+=========
+
+x.x.x
+-------
+
+
+0.1.0
+-------
+
+* Initial version

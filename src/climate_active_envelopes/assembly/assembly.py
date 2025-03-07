@@ -47,7 +47,7 @@ class CAEAssembly(Assembly):
         super(CAEAssembly, self).__init__()
         self.brick_params = None
         if brick_full and brick_insulated and brick_half:
-            self.set_brick_params(brick_full, brick_insulated, brick_half)
+            self.set_brick_params(brick_full, brick_insulated, brick_half, brick_air_dried)
 
 
     def export_to_json(self, path, is_built=False):
@@ -60,12 +60,13 @@ class CAEAssembly(Assembly):
         self.to_json(path)
 
 
-    def set_brick_params(self, brick_full, brick_insulated, brick_half):
+    def set_brick_params(self, brick_full, brick_insulated, brick_half, brick_air_dried):
 
         self.brick_params = {
             "brick_full": brick_full,
             "brick_insulated": brick_insulated,
             "brick_half": brick_half,
+            "brick_air_dried": brick_air_dried,
         }
 
         return self.brick_params
@@ -211,6 +212,7 @@ class CAEAssembly(Assembly):
         brick_full = self.brick_params["brick_full"]
         brick_insulated = self.brick_params["brick_insulated"]
         brick_half = self.brick_params["brick_half"]
+        brick_air_dried = self.brick_params["brick_air_dried"]
 
         if frame is None:
             frame = frame
@@ -223,6 +225,9 @@ class CAEAssembly(Assembly):
 
         if brick_type == "half":
             brick = brick_half
+
+        if brick_type == "air_dried":
+            brick = brick_air_dried
             
         my_brick = brick.transformed(Transformation.from_frame(frame))
 
@@ -874,7 +879,7 @@ class CAEAssembly(Assembly):
         #print(f"Adding connection between {a_key} and {b_key}")
         return self.graph.add_edge(a_key, b_key, **kwargs)
 
-    def assembly_courses(self, tol=0.01):
+    def assembly_courses_xy(self, tol=0.01):
         """Identify the courses in a wall of bricks.
 
         Parameters
@@ -925,6 +930,10 @@ class CAEAssembly(Assembly):
         # Sort courses by their minimum z value
         courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
 
+        # Assign course id's to the corresponding blocks
+        for i, course in enumerate(courses):
+            self.graph.nodes_attribute(name='course', value=i, keys=course)
+
         # Sort nodes within each course by proximity using graph.neighbors
         for i, course in enumerate(courses):
             sorted_course = []
@@ -948,8 +957,9 @@ class CAEAssembly(Assembly):
                     current_node = closest_node
 
                 courses[i] = sorted_course
-
+        
         return courses
+
 
     def distance_xy(self, node1, node2):
         """Calculate the distance between two nodes in the x and y directions."""
@@ -1037,85 +1047,144 @@ class CAEAssembly(Assembly):
         return sequence[::-1]
 
 
+    def assembly_courses(self, tol=0.01, xy_tol=0.04):
 
+        """Identify the courses in a wall of bricks.
 
+        Parameters
+        ----------
+        tol : float, optional
+            Tolerance for identifying courses.
 
+        Examples
+        --------
+        .. code-block:: python
 
+            pass
 
+        """
+        courses = []
 
+        # all element keys
+        elements = set(self.graph.nodes())
+        #print(f"All element keys: {elements}")
 
+        # base course keys
+        c_min = min(self.graph.nodes_attribute('z'))
+        #print(f"Minimum z value: {c_min}")
 
+        base = set()
+        for e in elements:
+            z = self.graph.node_attribute(key=e, name='z')
+            #print(f"Element key: {e}, z value: {z}")
+            if abs(z - c_min) < tol:
+                base.add(e)
 
+        if base:
+            courses.append(list(base))
+            elements -= base
 
-        # def assembly_courses(self, tol=0.01):
+            while elements:
+                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
+                base = set()
+                for e in elements:
+                    z = self.graph.node_attribute(key=e, name='z')
+                    if abs(z - c_min) < tol:
+                        base.add(e)
 
+                if base:
+                    courses.append(list(base))
+                    elements -= base
 
+        # Sort courses by their minimum z value
+        courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
 
+        # Print the sorted courses for debugging
+        for i, course in enumerate(courses):
+            course_z_values = [self.graph.node_attribute(key, 'z') for key in course]
+            #print(f"Course {i}: {course} with z values {course_z_values}")
 
+        # assign course id's to the corresponding blocks
+        for i, course in enumerate(courses):
+            self.graph.nodes_attribute(name='course', value=i, keys=course)
+            # Print the course assignment for debugging
+            for key in course:
+                assigned_course = self.graph.node_attribute(key, 'course')
+                #print(f"Node {key} assigned to course {assigned_course}")
 
+        # Sort nodes within each course by proximity using graph.neighbors
+        for i, course in enumerate(courses):
+            sorted_course = []
+            remaining_nodes = set(course)
+            current_node = remaining_nodes.pop()
+            sorted_course.append(current_node)
 
-    #     """Identify the courses in a wall of bricks.
+            while remaining_nodes:
+                neighbors = set(self.graph.neighbors(current_node))
+                next_node = neighbors.intersection(remaining_nodes)
+                if next_node:
+                    next_node = next_node.pop()
+                    sorted_course.append(next_node)
+                    remaining_nodes.remove(next_node)
+                    current_node = next_node
+                else:
+                    # If no direct neighbor is found, pick the closest remaining node
+                    closest_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
+                    sorted_course.append(closest_node)
+                    remaining_nodes.remove(closest_node)
+                    current_node = closest_node
 
-    #     Parameters
-    #     ----------
-    #     tol : float, optional
-    #         Tolerance for identifying courses.
+            courses[i] = sorted_course
 
-    #     Examples
-    #     --------
-    #     .. code-block:: python
+            # Add connections between each node and its next closest neighbor in either x or y axis
+            for j in range(len(sorted_course) - 1):
+                node = sorted_course[j]
+                next_node = min(
+                    sorted_course[j + 1:],
+                    key=lambda n: self.distance_xy(node, n)
+                )
+                self.add_connection(node, next_node)
 
-    #         pass
+        # Add connections to the closest neighbor in the course below
+        for i in range(1, len(courses)):
+            current_course = courses[i]
+            below_course = courses[i - 1]
+            connected_nodes = set()
+            for node in current_course:
+                z_node = self.graph.node_attribute(key=node, name='z')
+                x_node, y_node = self.graph.node_attributes(node, ['x', 'y'])
+                available_neighbors = [
+                    n for n in below_course if n not in connected_nodes and
+                    abs(self.graph.node_attribute(key=n, name='x') - x_node) < xy_tol and
+                    abs(self.graph.node_attribute(key=n, name='y') - y_node) < xy_tol
+                ]
+                if available_neighbors:
+                    closest_neighbor = min(
+                        available_neighbors,
+                        key=lambda n: abs(z_node - self.graph.node_attribute(key=n, name='z'))
+                    )
+                    self.add_connection(node, closest_neighbor)
+                    connected_nodes.add(closest_neighbor)
 
-    #     """
-        # courses = []
+        #print("Reached the end of the method")
+        return courses
+    
+    def get_all_nodes_in_courses(self, tol=0.01, xy_tol=0.04):
+        """Get a flattened list of all nodes in the courses.
 
-        # # all element keys
-        # elements = set(self.graph.nodes())
-        # #print(f"All element keys: {elements}")
+        Parameters
+        ----------
+        tol : float, optional
+            Tolerance for identifying courses.
+        xy_tol : float, optional
+            Tolerance for identifying the closest neighbor in the x and y directions.
 
-        # # base course keys
-        # c_min = min(self.graph.nodes_attribute('z'))
-        # #print(f"Minimum z value: {c_min}")
+        Returns
+        -------
+        list
+            A flattened list of all nodes in the courses.
+        """
+        courses = self.assembly_courses(tol=tol, xy_tol=xy_tol)
 
-        # base = set()
-        # for e in elements:
-        #     z = self.graph.node_attribute(key=e, name='z')
-        #     #print(f"Element key: {e}, z value: {z}")
-        #     if abs(z - c_min) < tol:
-        #         base.add(e)
-
-        # if base:
-        #     courses.append(list(base))
-        #     elements -= base
-
-        #     while elements:
-        #         c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
-        #         base = set()
-        #         for e in elements:
-        #             z = self.graph.node_attribute(key=e, name='z')
-        #             if abs(z - c_min) < tol:
-        #                 base.add(e)
-
-        #         if base:
-        #             courses.append(list(base))
-        #             elements -= base
-
-        # # Sort courses by their minimum z value
-        # courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
-
-        # # Print the sorted courses for debugging
-        # for i, course in enumerate(courses):
-        #     course_z_values = [self.graph.node_attribute(key, 'z') for key in course]
-        #     #print(f"Course {i}: {course} with z values {course_z_values}")
-
-        # # assign course id's to the corresponding blocks
-        # for i, course in enumerate(courses):
-        #     self.graph.nodes_attribute(name='course', value=i, keys=course)
-        #     # Print the course assignment for debugging
-        #     for key in course:
-        #         assigned_course = self.graph.node_attribute(key, 'course')
-        #         #print(f"Node {key} assigned to course {assigned_course}")
-
-        # #print("Reached the end of the method")
-        # return courses
+        L = [node for course in courses for node in course]
+        return L
