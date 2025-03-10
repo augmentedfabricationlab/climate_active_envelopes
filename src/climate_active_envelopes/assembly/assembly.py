@@ -898,43 +898,43 @@ class CAEAssembly(Assembly):
 
         # all element keys
         elements = set(self.graph.nodes())
-        #print(f"All element keys: {elements}")
 
         # base course keys
         c_min = min(self.graph.nodes_attribute('z'))
-        #print(f"Minimum z value: {c_min}")
+        #base = set(assembly.network.nodes_where({'z': c_min}))
 
         base = set()
         for e in elements:
             z = self.graph.node_attribute(key=e, name='z')
-            #print(f"Element key: {e}, z value: {z}")
-            if abs(z - c_min) < tol:
+            if (z - c_min) ** 2 < tol:
                 base.add(e)
+        # print(base)
 
         if base:
             courses.append(list(base))
+
             elements -= base
 
-            while elements:
+            while elements:  # and counter<1000:
+
                 c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
+                # print(c_min)
+                #base = set(assembly.network.nodes_where({'z': c_min}))
+                # print(base)
                 base = set()
                 for e in elements:
                     z = self.graph.node_attribute(key=e, name='z')
-                    if abs(z - c_min) < tol:
+                    if (z - c_min) ** 2 < tol:
                         base.add(e)
 
-                if base:
-                    courses.append(list(base))
-                    elements -= base
+                courses.append(list(base))
+                elements -= base
 
-        # Sort courses by their minimum z value
-        courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
-
-        # Assign course id's to the corresponding blocks
+        # assign course id's to the corresponding blocks
         for i, course in enumerate(courses):
             self.graph.nodes_attribute(name='course', value=i, keys=course)
 
-        # Sort nodes within each course by proximity using graph.neighbors
+        # Sort nodes within each course by proximity
         for i, course in enumerate(courses):
             sorted_course = []
             remaining_nodes = set(course)
@@ -942,22 +942,13 @@ class CAEAssembly(Assembly):
             sorted_course.append(current_node)
 
             while remaining_nodes:
-                neighbors = set(self.graph.neighbors(current_node))
-                next_node = neighbors.intersection(remaining_nodes)
-                if next_node:
-                    next_node = next_node.pop()
-                    sorted_course.append(next_node)
-                    remaining_nodes.remove(next_node)
-                    current_node = next_node
-                else:
-                    # If no direct neighbor is found, pick the closest remaining node
-                    closest_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
-                    sorted_course.append(closest_node)
-                    remaining_nodes.remove(closest_node)
-                    current_node = closest_node
+                next_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
+                sorted_course.append(next_node)
+                remaining_nodes.remove(next_node)
+                current_node = next_node
 
-                courses[i] = sorted_course
-        
+            courses[i] = sorted_course
+
         return courses
 
 
@@ -965,89 +956,9 @@ class CAEAssembly(Assembly):
         """Calculate the distance between two nodes in the x and y directions."""
         x1, y1, _ = self.graph.node_attributes(node1, ['x', 'y', 'z'])
         x2, y2, _ = self.graph.node_attributes(node2, ['x', 'y', 'z'])
-        return abs(x1 - x2) + abs(y1 - y2)
+        return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
 
-
-    def assembly_building_sequence(assembly, key):
-        """Determine the sequence of bricks that need to be assembled to be able to
-        place a target brick.
-
-        Parameters
-        ----------
-        assembly : Assembly
-            An assembly data structure.
-        key : hashable
-            The block identifier.
-
-        Returns
-        -------
-        list
-            A sequence of block identifiers.
-        Notes
-        -----
-        This will only work for properly supported *wall* assemblies of which the
-        interfaces and courses have been identified.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            # this code only works in Rhino
-
-            assembly = Assembly.from_json(...)
-
-            placed = list(assembly.nodes_where({'is_placed': True}))
-
-            artist = AssemblyArtist(assembly, layer="Assembly")
-
-            artist.clear_layer()
-            artist.draw_nodes()
-            artist.draw_blocks(show_faces=False, show_edges=True)
-
-            if placed:
-                artist.draw_blocks(keys=placed, show_faces=True, show_edges=False)
-
-            artist.redraw()
-
-            key = AssemblyHelper.select_node(assembly)
-
-            sequence = assembly_block_building_sequence(assembly, key)
-
-            print(sequence)
-
-            keys = list(set(sequence) - set(placed))
-
-            artist.draw_blocks(keys=keys, show_faces=True, show_edges=False)
-            artist.redraw()
-
-        """
-
-        course = assembly.network.node_attribute(key, 'course')
-
-        if course is None:
-            raise Exception("The courses of the assembly have not been identified.")
-
-        sequence = []
-        seen = set()
-        tovisit = deque([(key, course + 1)])
-
-        while tovisit:
-            k, course_above = tovisit.popleft()
-
-            if k not in seen:
-                seen.add(k)
-                course = assembly.network.node_attribute(k, 'course')
-
-                if course_above == course + 1:
-                    sequence.append(k)
-                    for nbr in assembly.network.neighbors(k):
-                        if nbr not in seen:
-                            tovisit.append((nbr, course))
-
-        return sequence[::-1]
-
-
-    def assembly_courses(self, tol=0.01, xy_tol=0.04):
+    def assembly_courses_xyz(self, tol=0.01, xy_tol=0.04):
 
         """Identify the courses in a wall of bricks.
 
@@ -1169,22 +1080,203 @@ class CAEAssembly(Assembly):
         #print("Reached the end of the method")
         return courses
     
-    def get_all_nodes_in_courses(self, tol=0.01, xy_tol=0.04):
-        """Get a flattened list of all nodes in the courses.
+    def assembly_with_interfaces_courses(self, tol=0.01):
+        """Identify the courses in a wall of bricks.
 
         Parameters
         ----------
         tol : float, optional
             Tolerance for identifying courses.
-        xy_tol : float, optional
-            Tolerance for identifying the closest neighbor in the x and y directions.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            pass
+
+        """
+        courses = []
+
+        # all element keys
+        elements = set(self.graph.nodes())
+
+        # base course keys
+        c_min = min(self.graph.nodes_attribute(name='z'))
+        base = set(self.graph.nodes_where({'z': c_min}))
+
+        if base:
+            courses.append(list(base))
+            elements -= base
+
+            while elements:
+                nbrs = set(nbr for key in courses[-1] for nbr in self.graph.neighbors(key))
+                course = list(nbrs & elements)
+                if course:
+                    courses.append(course)
+                    elements -= set(course)
+                else:
+                    next_base = set()
+                    for e in elements:
+                        z = self.graph.node_attribute(key=e, name='z')
+                        if abs(z - c_min) < tol:
+                            next_base.add(e)
+                    if next_base:
+                        courses.append(list(next_base))
+                        elements -= next_base
+                    else:
+                        # If no new base course is found, break the loop to avoid infinite loop
+                        break
+
+        # assign course id's to the corresponding blocks
+        for i, course in enumerate(courses):
+            self.graph.nodes_attribute(name='course', value=i, keys=course)
+        return courses
+    
+    def assembly_courses(self, tol=0.001):
+        """Identify the courses in a wall of bricks.
+
+        Parameters
+        ----------
+        wall : Assembly
+            The wall assembly data structure.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            pass
+
+        """
+        courses = []
+
+        # all element keys
+        elements = set(self.graph.nodes())
+
+        # base course keys
+        c_min = min(self.graph.nodes_attribute('z'))
+        #base = set(assembly.network.nodes_where({'z': c_min}))
+
+        base = set()
+        for e in elements:
+            z = self.graph.node_attribute(key=e, name='z')
+            if (z - c_min) ** 2 < tol:
+                base.add(e)
+        # print(base)
+
+        if base:
+            courses.append(list(base))
+
+            elements -= base
+
+            while elements:  # and counter<1000:
+
+                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
+                # print(c_min)
+                #base = set(assembly.network.nodes_where({'z': c_min}))
+                # print(base)
+                base = set()
+                for e in elements:
+                    z = self.graph.node_attribute(key=e, name='z')
+                    if (z - c_min) ** 2 < tol:
+                        base.add(e)
+
+                courses.append(list(base))
+                elements -= base
+
+        # assign course id's to the corresponding blocks
+        for i, course in enumerate(courses):
+            self.graph.nodes_attribute(name='course', value=i, keys=course)
+
+        return courses
+
+
+    def assembly_building_sequence(self, key):
+        """Determine the sequence of bricks that need to be assembled to be able to
+        place a target brick.
+
+        Parameters
+        ----------
+        assembly : Assembly
+            An assembly data structure.
+        key : hashable
+            The block identifier.
 
         Returns
         -------
         list
-            A flattened list of all nodes in the courses.
-        """
-        courses = self.assembly_courses(tol=tol, xy_tol=xy_tol)
+            A sequence of block identifiers.
+        Notes
+        -----
+        This will only work for properly supported *wall* assemblies of which the
+        interfaces and courses have been identified.
 
-        L = [node for course in courses for node in course]
-        return L
+        Examples
+        --------
+        .. code-block:: python
+
+            # this code only works in Rhino
+
+            assembly = Assembly.from_json(...)
+
+            placed = list(assembly.nodes_where({'is_placed': True}))
+
+            artist = AssemblyArtist(assembly, layer="Assembly")
+
+            artist.clear_layer()
+            artist.draw_nodes()
+            artist.draw_blocks(show_faces=False, show_edges=True)
+
+            if placed:
+                artist.draw_blocks(keys=placed, show_faces=True, show_edges=False)
+
+            artist.redraw()
+
+            key = AssemblyHelper.select_node(assembly)
+
+            sequence = assembly_block_building_sequence(assembly, key)
+
+            print(sequence)
+
+            keys = list(set(sequence) - set(placed))
+
+            artist.draw_blocks(keys=keys, show_faces=True, show_edges=False)
+            artist.redraw()
+
+        """
+
+        course = self.graph.node_attribute(key, 'course')
+
+        if course is None:
+            raise Exception("The courses of the assembly have not been identified.")
+
+        sequence = []
+        seen = set()
+        tovisit = deque([(key, course + 1)])
+
+        while tovisit:
+            k, course_above = tovisit.popleft()
+
+            if k not in seen:
+                seen.add(k)
+                course = self.graph.node_attribute(k, 'course')
+
+                if course_above == course + 1:
+                    sequence.append(k)
+                    for nbr in self.graph.neighbors(k):
+                        if nbr not in seen:
+                            tovisit.append((nbr, course))
+
+        for i in range(len(sequence) - 1):
+            self.add_connection(sequence[i], sequence[i + 1])
+
+        for i in range(len(sequence)):
+            current_node = sequence[i]
+            current_z = self.graph.node_attribute(current_node, 'z')
+            for j in range(i + 1, len(sequence)):
+                next_node = sequence[j]
+                next_z = self.graph.node_attribute(next_node, 'z')
+                if next_z > current_z:
+                    self.add_connection(current_node, next_node)
+                    break
+
+        return sequence[::-1]
