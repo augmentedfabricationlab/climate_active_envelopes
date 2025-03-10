@@ -47,7 +47,7 @@ class CAEAssembly(Assembly):
         super(CAEAssembly, self).__init__()
         self.brick_params = None
         if brick_full and brick_insulated and brick_half:
-            self.set_brick_params(brick_full, brick_insulated, brick_half, brick_air_dried)
+            self.set_brick_params(brick_full, brick_insulated, brick_half)
 
 
     def export_to_json(self, path, is_built=False):
@@ -60,13 +60,13 @@ class CAEAssembly(Assembly):
         self.to_json(path)
 
 
-    def set_brick_params(self, brick_full, brick_insulated, brick_half, brick_air_dried):
+    def set_brick_params(self, brick_full, brick_insulated, brick_half):
 
         self.brick_params = {
             "brick_full": brick_full,
             "brick_insulated": brick_insulated,
             "brick_half": brick_half,
-            "brick_air_dried": brick_air_dried,
+           
         }
 
         return self.brick_params
