@@ -34,17 +34,11 @@ Execute the commands below in Anaconda Prompt:
     (cae) python -m compas
             Yay! COMPAS is installed correctly!
 
-#### Install compas_rrc
-    (cae) conda install compas_rrc
 
-#### Install on Rhino (as admin)
-
-    (cae) python -m compas_rhino.install -v 8.0
-
-#### Install compas, compas_fab and compas_rrc using the file path of the Rhino 8 Python executable
+#### Install compas and compas_fab using the file path of the Rhino 8 Python executable
 
     (cae) cd .rhinocode\py39-rh8
-    (cae) python.exe -m pip install compas compas_fab compas_rrc
+    (cae) python.exe -m pip install compas compas_fab
        
 ### 2. Cloning and installing the repository
 
