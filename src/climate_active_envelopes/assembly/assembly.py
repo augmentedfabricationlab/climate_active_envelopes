@@ -8,6 +8,26 @@ from compas.datastructures import AssemblyError
 from compas.geometry import Frame, Translation, Rotation, Transformation, Vector, Point, normalize_vector
 from compas_rhino.conversions import plane_to_compas_frame, point_to_compas, mesh_to_rhino, point_to_rhino, vector_to_rhino
 
+from numpy import array
+from numpy import float64
+from scipy.linalg import solve
+from scipy.spatial import cKDTree
+from compas.geometry import Polygon
+
+import math as m
+
+
+from compas.geometry import Frame
+from compas.geometry import local_to_world_coordinates_numpy
+
+
+
+
+
+
+
+
+
 from collections import deque
 
 from assembly_information_model import Assembly
@@ -212,7 +232,7 @@ class CAEAssembly(Assembly):
         brick_full = self.brick_params["brick_full"]
         brick_insulated = self.brick_params["brick_insulated"]
         brick_half = self.brick_params["brick_half"]
-        brick_air_dried = self.brick_params["brick_air_dried"]
+        #brick_air_dried = self.brick_params["brick_air_dried"]
 
         if frame is None:
             frame = frame
@@ -226,8 +246,8 @@ class CAEAssembly(Assembly):
         if brick_type == "half":
             brick = brick_half
 
-        if brick_type == "air_dried":
-            brick = brick_air_dried
+        # if brick_type == "air_dried":
+        #     brick = brick_air_dried
             
         my_brick = brick.transformed(Transformation.from_frame(frame))
 
@@ -706,21 +726,21 @@ class CAEAssembly(Assembly):
                     if start_edge_type == 'corner' and brick == 1:
                         T2 = Translation.from_vector(brick_frame.xaxis * (brick_length_h / 2))
                         current_frame = current_frame.transformed(T2)
-                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type="translate", frame=current_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type="fixed", frame=current_frame)
 
                     elif end_edge_type == 'corner' and brick == bricks_per_course - 2:
                         T3 = Translation.from_vector(brick_frame.xaxis * (-brick_length_h / 2))
                         current_frame = current_frame.transformed(T3)
-                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type="translate", frame=current_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="half", transform_type="fixed", frame=current_frame)
 
                     else: # end_edge_type == 'corner':
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="translate", frame=current_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=current_frame)
 
                 else:
                     if start_edge_type == 'corner' and brick == 0:
                         T4 = Translation.from_vector(brick_frame.xaxis * (brick_length_h))
                         current_frame = brick_frame.transformed(T4)
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="rotate", frame=current_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=current_frame)
 
                         #T8 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                         #current_frame = current_frame.transformed(T8)
@@ -729,14 +749,14 @@ class CAEAssembly(Assembly):
                     elif end_edge_type == 'corner' and brick == bricks_per_course - 1:
                         T5 = Translation.from_vector(brick_frame.xaxis * (-brick_length_h))
                         current_frame = brick_frame.transformed(T5)
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="rotate", frame=current_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=current_frame)
 
                         #T6 = Translation.from_vector(current_frame.yaxis * (brick_length + brick_spacing))
                         #current_frame = current_frame.transformed(T6)
                         #self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type="fixed", frame=current_frame)
 
                     else: #end_edge_type == 'corner':
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="rotate", frame=brick_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type="fixed", frame=brick_frame)
 
                         T7 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                         current_frame = brick_frame.transformed(T7)
@@ -791,7 +811,7 @@ class CAEAssembly(Assembly):
         transform_type : str, optional
             Type of transformation to apply ("translate" or "rotate"). 
         """
-
+        
         sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
         sorted_keys, sorted_values = zip(*sorted_keys_values)
 
@@ -816,322 +836,70 @@ class CAEAssembly(Assembly):
             
             part.transform(T)
 
-    def add_part(self, part, key=None, attr_dict=None, **kwargs):
-        """Add a part to the assembly.
+    # def add_part(self, part, key=None, attr_dict=None, **kwargs):
+    #     """Add a part to the assembly.
 
-        Parameters
-        ----------
-        part : :class:`compas.datastructures.Part`
-            The part to add.
-        key : int | str, optional
-            The identifier of the part in the assembly.
-            Note that the key is unique only in the context of the current assembly.
-            Nested assemblies may have the same `key` value for one of their parts.
-            Default is None in which case the key will be an automatically assigned integer value.
-        **kwargs: dict[str, Any], optional
-            Additional named parameters collected in a dict.
+    #     Parameters
+    #     ----------
+    #     part : :class:`compas.datastructures.Part`
+    #         The part to add.
+    #     key : int | str, optional
+    #         The identifier of the part in the assembly.
+    #         Note that the key is unique only in the context of the current assembly.
+    #         Nested assemblies may have the same `key` value for one of their parts.
+    #         Default is None in which case the key will be an automatically assigned integer value.
+    #     **kwargs: dict[str, Any], optional
+    #         Additional named parameters collected in a dict.
 
-        Returns
-        -------
-        int | str
-            The identifier of the part in the current assembly graph.
+    #     Returns
+    #     -------
+    #     int | str
+    #         The identifier of the part in the current assembly graph.
 
-        """
-        if part.guid in self._parts:
-            raise AssemblyError("Part already added to the assembly")
+    #     """
+    #     if part.guid in self._parts:
+    #         raise AssemblyError("Part already added to the assembly")
         
-        key = self.graph.add_node(key=key, part=part, x=part.frame.point.x, y=part.frame.point.y, z=part.frame.point.z, **kwargs)
-        part.key = key
-        self._parts[part.guid] = part.key
+    #     key = self.graph.add_node(key=key, part=part, x=part.frame.point.x, y=part.frame.point.y, z=part.frame.point.z, **kwargs)
+    #     part.key = key
+    #     self._parts[part.guid] = part.key
 
-        if attr_dict:
-            for attr, value in attr_dict.items():
-                part.attributes[attr] = value
+    #     if attr_dict:
+    #         for attr, value in attr_dict.items():
+    #             part.attributes[attr] = value
+    #             #self.graph.node_attribute(key, attr, value)
 
-        return key
+    #     return key
     
-    def add_connection(self, a_key, b_key, **kwargs):
-        """Add a connection between two parts.
+    # def add_connection(self, a_key, b_key, **kwargs):
+    #     """Add a connection between two parts.
 
-        Parameters
-        ----------
-        a_key : int | str
-            The identifier of the "from" part.
-        b_key : int | str
-            The identifier of the "to" part.
-        **kwargs : dict[str, Any], optional
-            Attribute dict compiled from named arguments.
+    #     Parameters
+    #     ----------
+    #     a_key : int | str
+    #         The identifier of the "from" part.
+    #     b_key : int | str
+    #         The identifier of the "to" part.
+    #     **kwargs : dict[str, Any], optional
+    #         Attribute dict compiled from named arguments.
 
-        Returns
-        -------
-        tuple[int | str, int | str]
-            The tuple of node identifiers that identifies the connection.
+    #     Returns
+    #     -------
+    #     tuple[int | str, int | str]
+    #         The tuple of node identifiers that identifies the connection.
 
-        Raises
-        ------
-        :class:`AssemblyError`
-            If `a_key` and/or `b_key` are not in the assembly.
+    #     Raises
+    #     ------
+    #     :class:`AssemblyError`
+    #         If `a_key` and/or `b_key` are not in the assembly.
 
-        """
-        error_msg = "Both parts have to be added to the assembly before a connection can be created."
-        if not self.graph.has_node(a_key) or not self.graph.has_node(b_key):
-            raise AssemblyError(error_msg)
-        #print(f"Adding connection between {a_key} and {b_key}")
-        return self.graph.add_edge(a_key, b_key, **kwargs)
+    #     """
+    #     error_msg = "Both parts have to be added to the assembly before a connection can be created."
+    #     if not self.graph.has_node(a_key) or not self.graph.has_node(b_key):
+    #         raise AssemblyError(error_msg)
+    #     #print(f"Adding connection between {a_key} and {b_key}")
+    #     return self.graph.add_edge(a_key, b_key, **kwargs)
 
-    def assembly_courses_xy(self, tol=0.01):
-        """Identify the courses in a wall of bricks.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance for identifying courses.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            pass
-
-        """
-        courses = []
-
-        # all element keys
-        elements = set(self.graph.nodes())
-
-        # base course keys
-        c_min = min(self.graph.nodes_attribute('z'))
-        #base = set(assembly.network.nodes_where({'z': c_min}))
-
-        base = set()
-        for e in elements:
-            z = self.graph.node_attribute(key=e, name='z')
-            if (z - c_min) ** 2 < tol:
-                base.add(e)
-        # print(base)
-
-        if base:
-            courses.append(list(base))
-
-            elements -= base
-
-            while elements:  # and counter<1000:
-
-                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
-                # print(c_min)
-                #base = set(assembly.network.nodes_where({'z': c_min}))
-                # print(base)
-                base = set()
-                for e in elements:
-                    z = self.graph.node_attribute(key=e, name='z')
-                    if (z - c_min) ** 2 < tol:
-                        base.add(e)
-
-                courses.append(list(base))
-                elements -= base
-
-        # assign course id's to the corresponding blocks
-        for i, course in enumerate(courses):
-            self.graph.nodes_attribute(name='course', value=i, keys=course)
-
-        # Sort nodes within each course by proximity
-        for i, course in enumerate(courses):
-            sorted_course = []
-            remaining_nodes = set(course)
-            current_node = remaining_nodes.pop()
-            sorted_course.append(current_node)
-
-            while remaining_nodes:
-                next_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
-                sorted_course.append(next_node)
-                remaining_nodes.remove(next_node)
-                current_node = next_node
-
-            courses[i] = sorted_course
-
-        return courses
-
-
-    def distance_xy(self, node1, node2):
-        """Calculate the distance between two nodes in the x and y directions."""
-        x1, y1, _ = self.graph.node_attributes(node1, ['x', 'y', 'z'])
-        x2, y2, _ = self.graph.node_attributes(node2, ['x', 'y', 'z'])
-        return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
-
-    def assembly_courses_xyz(self, tol=0.01, xy_tol=0.04):
-
-        """Identify the courses in a wall of bricks.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance for identifying courses.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            pass
-
-        """
-        courses = []
-
-        # all element keys
-        elements = set(self.graph.nodes())
-        #print(f"All element keys: {elements}")
-
-        # base course keys
-        c_min = min(self.graph.nodes_attribute('z'))
-        #print(f"Minimum z value: {c_min}")
-
-        base = set()
-        for e in elements:
-            z = self.graph.node_attribute(key=e, name='z')
-            #print(f"Element key: {e}, z value: {z}")
-            if abs(z - c_min) < tol:
-                base.add(e)
-
-        if base:
-            courses.append(list(base))
-            elements -= base
-
-            while elements:
-                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
-                base = set()
-                for e in elements:
-                    z = self.graph.node_attribute(key=e, name='z')
-                    if abs(z - c_min) < tol:
-                        base.add(e)
-
-                if base:
-                    courses.append(list(base))
-                    elements -= base
-
-        # Sort courses by their minimum z value
-        courses.sort(key=lambda course: min(self.graph.node_attribute(key, 'z') for key in course))
-
-        # Print the sorted courses for debugging
-        for i, course in enumerate(courses):
-            course_z_values = [self.graph.node_attribute(key, 'z') for key in course]
-            #print(f"Course {i}: {course} with z values {course_z_values}")
-
-        # assign course id's to the corresponding blocks
-        for i, course in enumerate(courses):
-            self.graph.nodes_attribute(name='course', value=i, keys=course)
-            # Print the course assignment for debugging
-            for key in course:
-                assigned_course = self.graph.node_attribute(key, 'course')
-                #print(f"Node {key} assigned to course {assigned_course}")
-
-        # Sort nodes within each course by proximity using graph.neighbors
-        for i, course in enumerate(courses):
-            sorted_course = []
-            remaining_nodes = set(course)
-            current_node = remaining_nodes.pop()
-            sorted_course.append(current_node)
-
-            while remaining_nodes:
-                neighbors = set(self.graph.neighbors(current_node))
-                next_node = neighbors.intersection(remaining_nodes)
-                if next_node:
-                    next_node = next_node.pop()
-                    sorted_course.append(next_node)
-                    remaining_nodes.remove(next_node)
-                    current_node = next_node
-                else:
-                    # If no direct neighbor is found, pick the closest remaining node
-                    closest_node = min(remaining_nodes, key=lambda node: self.distance_xy(current_node, node))
-                    sorted_course.append(closest_node)
-                    remaining_nodes.remove(closest_node)
-                    current_node = closest_node
-
-            courses[i] = sorted_course
-
-            # Add connections between each node and its next closest neighbor in either x or y axis
-            for j in range(len(sorted_course) - 1):
-                node = sorted_course[j]
-                next_node = min(
-                    sorted_course[j + 1:],
-                    key=lambda n: self.distance_xy(node, n)
-                )
-                self.add_connection(node, next_node)
-
-        # Add connections to the closest neighbor in the course below
-        for i in range(1, len(courses)):
-            current_course = courses[i]
-            below_course = courses[i - 1]
-            connected_nodes = set()
-            for node in current_course:
-                z_node = self.graph.node_attribute(key=node, name='z')
-                x_node, y_node = self.graph.node_attributes(node, ['x', 'y'])
-                available_neighbors = [
-                    n for n in below_course if n not in connected_nodes and
-                    abs(self.graph.node_attribute(key=n, name='x') - x_node) < xy_tol and
-                    abs(self.graph.node_attribute(key=n, name='y') - y_node) < xy_tol
-                ]
-                if available_neighbors:
-                    closest_neighbor = min(
-                        available_neighbors,
-                        key=lambda n: abs(z_node - self.graph.node_attribute(key=n, name='z'))
-                    )
-                    self.add_connection(node, closest_neighbor)
-                    connected_nodes.add(closest_neighbor)
-
-        #print("Reached the end of the method")
-        return courses
-    
-    def assembly_with_interfaces_courses(self, tol=0.01):
-        """Identify the courses in a wall of bricks.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance for identifying courses.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            pass
-
-        """
-        courses = []
-
-        # all element keys
-        elements = set(self.graph.nodes())
-
-        # base course keys
-        c_min = min(self.graph.nodes_attribute(name='z'))
-        base = set(self.graph.nodes_where({'z': c_min}))
-
-        if base:
-            courses.append(list(base))
-            elements -= base
-
-            while elements:
-                nbrs = set(nbr for key in courses[-1] for nbr in self.graph.neighbors(key))
-                course = list(nbrs & elements)
-                if course:
-                    courses.append(course)
-                    elements -= set(course)
-                else:
-                    next_base = set()
-                    for e in elements:
-                        z = self.graph.node_attribute(key=e, name='z')
-                        if abs(z - c_min) < tol:
-                            next_base.add(e)
-                    if next_base:
-                        courses.append(list(next_base))
-                        elements -= next_base
-                    else:
-                        # If no new base course is found, break the loop to avoid infinite loop
-                        break
-
-        # assign course id's to the corresponding blocks
-        for i, course in enumerate(courses):
-            self.graph.nodes_attribute(name='course', value=i, keys=course)
-        return courses
-    
     def assembly_courses(self, tol=0.001):
         """Identify the courses in a wall of bricks.
 
@@ -1149,46 +917,36 @@ class CAEAssembly(Assembly):
         """
         courses = []
 
-        # all element keys
-        elements = set(self.graph.nodes())
+        # all part keys
+        parts = set(self.graph.nodes())
 
         # base course keys
         c_min = min(self.graph.nodes_attribute('z'))
-        #base = set(assembly.network.nodes_where({'z': c_min}))
 
         base = set()
-        for e in elements:
+        for e in parts:
             z = self.graph.node_attribute(key=e, name='z')
             if (z - c_min) ** 2 < tol:
                 base.add(e)
-        # print(base)
 
         if base:
             courses.append(list(base))
-
-            elements -= base
-
-            while elements:  # and counter<1000:
-
-                c_min = min([self.graph.node_attribute(key=key, name='z') for key in elements])
-                # print(c_min)
-                #base = set(assembly.network.nodes_where({'z': c_min}))
-                # print(base)
+            parts -= base
+            while parts:  # and counter<1000:
+                c_min = min([self.graph.node_attribute(key=key, name='z') for key in parts])
                 base = set()
-                for e in elements:
-                    z = self.graph.node_attribute(key=e, name='z')
+                for p in parts:
+                    z = self.graph.node_attribute(key=p, name='z')
                     if (z - c_min) ** 2 < tol:
-                        base.add(e)
-
+                        base.add(p)
                 courses.append(list(base))
-                elements -= base
+                parts -= base
 
         # assign course id's to the corresponding blocks
         for i, course in enumerate(courses):
             self.graph.nodes_attribute(name='course', value=i, keys=course)
 
-        return courses
-
+        return courses   
 
     def assembly_building_sequence(self, key):
         """Determine the sequence of bricks that need to be assembled to be able to
@@ -1280,3 +1038,187 @@ class CAEAssembly(Assembly):
                     break
 
         return sequence[::-1]
+    
+    def _find_nearest_neighbours(self, cloud, nmax):
+        tree = cKDTree(cloud)
+        nnbrs = [tree.query(root, nmax) for root in cloud]
+        nnbrs = [(d.flatten().tolist(), n.flatten().tolist()) for d, n in nnbrs]
+        return nnbrs
+
+    def assembly_interfaces_numpy(self,
+                                nmax=10,
+                                tmax=1e-6,
+                                amin=1e-1,
+                                lmin=1e-3,
+                                face_face=True,
+                                face_edge=False,
+                                face_vertex=False):
+        """Identify the interfaces between the blocks of an assembly.
+
+        Parameters
+        ----------
+        assembly : compas_assembly.datastructures.Assembly
+            An assembly of discrete blocks.
+        nmax : int, optional
+            Maximum number of neighbours per block.
+            Default is ``10``.
+        tmax : float, optional
+            Maximum deviation from the perfectly flat interface plane.
+            Default is ``1e-6``.
+        amin : float, optional
+            Minimum area of a "face-face" interface.
+            Default is ``1e-1``.
+        lmin : float, optional
+            Minimum length of a "face-edge" interface.
+            Default is ``1e-3``.
+        face_face : bool, optional
+            Test for "face-face" interfaces.
+            Default is ``True``.
+        face_edge : bool, optional
+            Test for "face-edge" interfaces.
+            Default is ``False``.
+        face_vertex : bool, optional
+            Test for "face-vertex" interfaces.
+            Default is ``False``.
+
+        References
+        ----------
+        The identification of interfaces is discussed in detail here [Frick2016]_.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            pass
+
+        """
+        # replace by something proper
+        self.graph.edge = {}
+        self.graph.halfedge = {}
+        for key in self.graph.nodes():
+            self.graph.edge[key] = {}
+            self.graph.halfedge[key] = {}
+
+        key_index = self.graph.node_index()
+        index_key = self.graph.index_node()
+
+        blocks = [self.part(key) for key in self.graph.nodes()]
+        nmax = min(nmax, len(blocks))
+        block_cloud = self.graph.nodes_attributes('xyz')
+
+        print("block_cloud:", block_cloud)
+
+        block_nnbrs = self._find_nearest_neighbours(block_cloud, nmax)
+
+        print("block_nnbrs:", block_nnbrs)
+
+        # k:      key of the base block
+        # i:      index of the base block
+        # block:  base block
+        # nbrs:   list of indices of the neighbouring blocks
+        # frames: list of frames for each of the faces of the base block
+
+        # f0:   key of the current base face
+        # A:    uvw base frame of f0
+        # o:    origin of the base frame of f0
+        # xyz0: xyz coordinates of the nodes of f0
+        # rst0: local coordinates of the nodes of f0, with respect to the frame of f0
+        # p0:   2D polygon of f0 in local coordinates
+
+        # j:   index of the current neighbour
+        # n:   key of the current neighbour
+        # nbr: neighbour block
+        # k_i: key index map for the nodes of the nbr block
+        # xyz: xyz coorindates of all nodes of nbr
+        # rst: local coordinates of all nodes of nbr, with respect to the frame of f0
+
+        # f1:   key of the current neighbour face
+        # rst1: local coordinates of the nodes of f1, with respect to the frame of f0
+        # p1:   2D polygon of f1 in local coordinates
+
+        interfaces = []
+        for k in self.graph.nodes():
+            print(f"Processing block with key: {k}")
+            i = key_index[k]
+            print(f"Index of block: {i}")
+            block = self.part(k)
+            print(f"Block: {block}")
+            nbrs = block_nnbrs[i][1]
+            print(f"Neighbours: {nbrs}")
+
+            frames = block.face_frames
+            print(f"Frames: {frames}")
+            if face_face:
+                print("Checking face-face interfaces")
+                # parallelise?
+                # exclude faces with parallel normals
+                # e.g. exclude overlapping top faces of two neighbouring blocks in same row
+
+                for f0, (origin, uvw) in frames.items():
+                    print(f"Processing face: {f0}")
+                    A = array(uvw, dtype=float64)
+                    o = array(origin, dtype=float64).reshape((-1, 1))
+                    xyz0 = array(block.mesh.face_coordinates(f0), dtype=float64).reshape((-1, 3)).T
+                    rst0 = solve(A.T, xyz0 - o).T.tolist()
+                    p0 = Polygon(rst0)
+
+                    for j in nbrs:
+                        n = index_key[j]
+                        print(f"Processing neighbour: {n}")
+                        if n == k:
+                            print("Skipping self")
+                            continue
+
+                        if k in self.graph.edge and n in self.graph.edge[k]:
+                            print("Skipping existing edge")
+                            continue
+
+                        if n in self.graph.edge and k in self.graph.edge[n]:
+                            print("Skipping existing edge")
+                            continue
+
+                        nbr = self.part(n)
+                        print(f"Neighbour block: {nbr}")
+                        # print(nbr)
+                        k_i = {key: index for index, key in enumerate(nbr.mesh.vertices())}
+                        xyz = array(nbr.mesh.vertices_attributes('xyz'), dtype=float64).reshape((-1, 3)).T
+                        rst = solve(A.T, xyz - o).T.tolist()
+                        rst = {key: rst[k_i[key]] for key in nbr.mesh.vertices()}
+
+                        for f1 in nbr.mesh.faces():
+                            print(f"Processing neighbour face: {f1}")
+
+                            rst1 = [rst[key] for key in nbr.mesh.face_vertices(f1)]
+
+                            if any(m.fabs(t) > tmax for r, s, t in rst1):
+                                print("Skipping face due to tmax")
+                                continue
+
+                            p1 = Polygon(rst1)
+
+                            if p1.area < amin:
+                                print("Skipping face due to amin")
+                                continue
+
+                            if p0.intersects(p1):
+                                intersection = p0.intersection(p1)
+
+                                area = intersection.area
+
+                                if area >= amin:
+                                    coords = [[x, y, 0.0] for x, y, z in intersection.exterior.coords]
+                                    coords = local_to_world_coordinates_numpy(Frame(o, A[0], A[1]), coords)
+
+                                    attr = {
+                                        'interface_type': 'face_face',
+                                        'interface_size': area,
+                                        'interface_points': coords.tolist()[:-1],
+                                        'interface_origin': origin,
+                                        'interface_uvw': uvw,
+                                    }
+
+                                    self.graph.add_edge(k, n, attr_dict=attr)
+                                    interfaces.append(attr)
+                                    print(f"Added interface: {attr}")
+        print("Final interfaces:", interfaces)
+        return interfaces
