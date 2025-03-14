@@ -836,40 +836,40 @@ class CAEAssembly(Assembly):
             
             part.transform(T)
 
-    # def add_part(self, part, key=None, attr_dict=None, **kwargs):
-    #     """Add a part to the assembly.
+    def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
+        """Add a part to the assembly.
 
-    #     Parameters
-    #     ----------
-    #     part : :class:`compas.datastructures.Part`
-    #         The part to add.
-    #     key : int | str, optional
-    #         The identifier of the part in the assembly.
-    #         Note that the key is unique only in the context of the current assembly.
-    #         Nested assemblies may have the same `key` value for one of their parts.
-    #         Default is None in which case the key will be an automatically assigned integer value.
-    #     **kwargs: dict[str, Any], optional
-    #         Additional named parameters collected in a dict.
+        Parameters
+        ----------
+        part : :class:`compas.datastructures.Part`
+            The part to add.
+        key : int | str, optional
+            The identifier of the part in the assembly.
+            Note that the key is unique only in the context of the current assembly.
+            Nested assemblies may have the same `key` value for one of their parts.
+            Default is None in which case the key will be an automatically assigned integer value.
+        **kwargs: dict[str, Any], optional
+            Additional named parameters collected in a dict.
 
-    #     Returns
-    #     -------
-    #     int | str
-    #         The identifier of the part in the current assembly graph.
+        Returns
+        -------
+        int | str
+            The identifier of the part in the current assembly graph.
 
-    #     """
-    #     if part.guid in self._parts:
-    #         raise AssemblyError("Part already added to the assembly")
+        """
+        if part.guid in self._parts:
+            raise AssemblyError("Part already added to the assembly")
         
-    #     key = self.graph.add_node(key=key, part=part, x=part.frame.point.x, y=part.frame.point.y, z=part.frame.point.z, **kwargs)
-    #     part.key = key
-    #     self._parts[part.guid] = part.key
+        key = self.graph.add_node(key=key, part=part, x=part.frame.point.x, y=part.frame.point.y, z=part.frame.point.z, **kwargs)
+        part.key = key
+        self._parts[part.guid] = part.key
 
-    #     if attr_dict:
-    #         for attr, value in attr_dict.items():
-    #             part.attributes[attr] = value
-    #             #self.graph.node_attribute(key, attr, value)
+        if attr_dict:
+            for attr, value in attr_dict.items():
+                part.attributes[attr] = value
+                #self.graph.node_attribute(key, attr, value)
 
-    #     return key
+        return key
     
     # def add_connection(self, a_key, b_key, **kwargs):
     #     """Add a connection between two parts.
@@ -947,6 +947,79 @@ class CAEAssembly(Assembly):
             self.graph.nodes_attribute(name='course', value=i, keys=course)
 
         return courses   
+
+
+    def calculate_neighbors_below(self, tol=0.001):
+        """Calculate the neighbors below each part by checking for intersections in their projections.
+
+        Parameters
+        ----------
+        tol : float, optional
+            Tolerance for intersection calculations. Default is 0.001.
+
+        Returns
+        -------
+        dict
+            A dictionary where keys are part identifiers and values are lists of neighboring part identifiers below.
+        """
+        neighbors_below = {}
+
+        # Get all part keys
+        parts = set(self.graph.nodes())
+
+        # Get the z-coordinates of all parts
+        z_coords = {key: self.graph.node_attribute(key=key, name='z') for key in parts}
+
+        # Sort parts by their z-coordinates
+        sorted_parts = sorted(parts, key=lambda key: z_coords[key])
+
+        for i, part in enumerate(sorted_parts):
+            neighbors_below[part] = []
+            part_z = z_coords[part]
+
+            # Project the current part onto the xy-plane
+            part_polygon = self._project_part_to_xy_plane(part)
+
+            for j in range(i):
+                neighbor = sorted_parts[j]
+                neighbor_z = z_coords[neighbor]
+
+                # Check if the neighbor is below the current part
+                if neighbor_z < part_z:
+                    # Project the neighbor part onto the xy-plane
+                    neighbor_polygon = self._project_part_to_xy_plane(neighbor)
+
+                    # Check for intersection
+                    if part_polygon.intersects(neighbor_polygon):
+                        neighbors_below[part].append(neighbor)
+
+        return neighbors_below
+
+
+    def _project_part_to_xy_plane(self, part):
+        """Project a part onto the xy-plane.
+
+        Parameters
+        ----------
+        part : hashable
+            The part identifier.
+
+        Returns
+        -------
+        compas.geometry.Polygon
+            The projected polygon of the part on the xy-plane.
+        """
+        # Get the coordinates of the part's vertices
+        vertices = self.graph.node_attributes(part, 'xyz')
+
+        # Project the vertices onto the xy-plane
+        if not isinstance(vertices[0], (list, tuple)):
+            vertices = [vertices]
+        projected_vertices = [(x, y) for x, y, z in vertices]
+
+        # Create a polygon from the projected vertices
+        return Polygon(projected_vertices)
+
 
     def assembly_building_sequence(self, key):
         """Determine the sequence of bricks that need to be assembled to be able to
