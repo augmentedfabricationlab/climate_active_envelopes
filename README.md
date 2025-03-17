@@ -47,9 +47,11 @@ Execute the commands below in Anaconda Prompt:
 ### 2. Cloning and installing the repository
 
 #### Repository Cloning
+
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
   
 Open Github Desktop and clone
+
 * [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder 
 * [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
 * [mobile_robot_control](https://github.com/augmentedfabricationlab/mobile_robot_control) into you workspace folder.
@@ -59,7 +61,9 @@ Open Github Desktop and clone
 SWITCH TO compas2 BRANCH IN MOBILE_ROBOT_CONTROL AND UR_FABRICATION_CONTROL!!!!
 
 ### 3. Install the repositories in editable mode
+
 Open Rhino, Grasshopper and a Python3 block. Go to Tools/Options and below add the following paths:
+
 * C:\Users\your_user_name\workspace\assembly_information_model\src
 * C:\Users\your_user_name\workspace\climate_active_envelopes\src
 * C:\Users\your_user_name\workspace\mobile_robot_control\src
@@ -69,10 +73,10 @@ Open Rhino, Grasshopper and a Python3 block. Go to Tools/Options and below add t
 ### 4. Run docker
 
 Open up the Docker desktop.
+
 Open up VScode, and install the docker extension.
+
 On VScode, find the file: \mobile_robot_control\docker\ros-systems\rbvogui-xl-ur20-noetic\docker-compose.yml, right click and click "compose up". Wait for the images to be copied and started.
-
-
 
 
 ## Credits
