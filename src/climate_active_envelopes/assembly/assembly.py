@@ -12,7 +12,8 @@ from numpy import array
 from numpy import float64
 from scipy.linalg import solve
 from scipy.spatial import cKDTree
-from compas.geometry import Polygon
+#from compas.geometry import Polygon
+from shapely.geometry import Polygon
 
 import math as m
 
@@ -949,77 +950,6 @@ class CAEAssembly(Assembly):
         return courses   
 
 
-    def calculate_neighbors_below(self, tol=0.001):
-        """Calculate the neighbors below each part by checking for intersections in their projections.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance for intersection calculations. Default is 0.001.
-
-        Returns
-        -------
-        dict
-            A dictionary where keys are part identifiers and values are lists of neighboring part identifiers below.
-        """
-        neighbors_below = {}
-
-        # Get all part keys
-        parts = set(self.graph.nodes())
-
-        # Get the z-coordinates of all parts
-        z_coords = {key: self.graph.node_attribute(key=key, name='z') for key in parts}
-
-        # Sort parts by their z-coordinates
-        sorted_parts = sorted(parts, key=lambda key: z_coords[key])
-
-        for i, part in enumerate(sorted_parts):
-            neighbors_below[part] = []
-            part_z = z_coords[part]
-
-            # Project the current part onto the xy-plane
-            part_polygon = self._project_part_to_xy_plane(part)
-
-            for j in range(i):
-                neighbor = sorted_parts[j]
-                neighbor_z = z_coords[neighbor]
-
-                # Check if the neighbor is below the current part
-                if neighbor_z < part_z:
-                    # Project the neighbor part onto the xy-plane
-                    neighbor_polygon = self._project_part_to_xy_plane(neighbor)
-
-                    # Check for intersection
-                    if part_polygon.intersects(neighbor_polygon):
-                        neighbors_below[part].append(neighbor)
-
-        return neighbors_below
-
-
-    def _project_part_to_xy_plane(self, part):
-        """Project a part onto the xy-plane.
-
-        Parameters
-        ----------
-        part : hashable
-            The part identifier.
-
-        Returns
-        -------
-        compas.geometry.Polygon
-            The projected polygon of the part on the xy-plane.
-        """
-        # Get the coordinates of the part's vertices
-        vertices = self.graph.node_attributes(part, 'xyz')
-
-        # Project the vertices onto the xy-plane
-        if not isinstance(vertices[0], (list, tuple)):
-            vertices = [vertices]
-        projected_vertices = [(x, y) for x, y, z in vertices]
-
-        # Create a polygon from the projected vertices
-        return Polygon(projected_vertices)
-
 
     def assembly_building_sequence(self, key):
         """Determine the sequence of bricks that need to be assembled to be able to
@@ -1209,7 +1139,7 @@ class CAEAssembly(Assembly):
         # rst1: local coordinates of the nodes of f1, with respect to the frame of f0
         # p1:   2D polygon of f1 in local coordinates
 
-        interfaces = []
+
         for k in self.graph.nodes():
             print(f"Processing block with key: {k}")
             i = key_index[k]
@@ -1291,7 +1221,3 @@ class CAEAssembly(Assembly):
                                     }
 
                                     self.graph.add_edge(k, n, attr_dict=attr)
-                                    interfaces.append(attr)
-                                    print(f"Added interface: {attr}")
-        print("Final interfaces:", interfaces)
-        return interfaces
