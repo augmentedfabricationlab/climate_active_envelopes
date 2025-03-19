@@ -10,6 +10,7 @@ from numpy import array
 from numpy import float64
 from scipy.linalg import solve
 from scipy.spatial import cKDTree
+from compas.geometry import Polygon
 #from shapely.geometry import Polygon
 
 

@@ -12,21 +12,14 @@ from numpy import array
 from numpy import float64
 from scipy.linalg import solve
 from scipy.spatial import cKDTree
-#from compas.geometry import Polygon
-from shapely.geometry import Polygon
+from compas.geometry import Polygon
+from shapely.geometry import Polygon as ShapelyPolygon
 
 import math as m
 
 
 from compas.geometry import Frame
 from compas.geometry import local_to_world_coordinates_numpy
-
-
-
-
-
-
-
 
 
 from collections import deque
@@ -872,34 +865,39 @@ class CAEAssembly(Assembly):
 
         return key
     
-    # def add_connection(self, a_key, b_key, **kwargs):
-    #     """Add a connection between two parts.
+    def read_model_to_assembly(self, brick_list, brick_type):
+        """Read a model to an assembly.
 
-    #     Parameters
-    #     ----------
-    #     a_key : int | str
-    #         The identifier of the "from" part.
-    #     b_key : int | str
-    #         The identifier of the "to" part.
-    #     **kwargs : dict[str, Any], optional
-    #         Attribute dict compiled from named arguments.
+        Parameters
+        ----------
+        brick_list : list
+            List of bricks to add to the assembly.
+        brick_type : str
+            The type of brick to add to the assembly.
+        
+        """
+        for brick in brick_list:
 
-    #     Returns
-    #     -------
-    #     tuple[int | str, int | str]
-    #         The tuple of node identifiers that identifies the connection.
+            if brick.Faces.Count > 0:
+                face = brick.Faces[5]
+                
+                u, v = face.Domain(0).Mid, face.Domain(1).Mid
+                plane = face.FrameAt(u, v)
+                frame = plane_to_compas_frame(plane[1])
 
-    #     Raises
-    #     ------
-    #     :class:`AssemblyError`
-    #         If `a_key` and/or `b_key` are not in the assembly.
+                brick_part = self.brick_params[brick_type]
+                z_size = brick_part.shape.zsize
+                translation_vector = -frame.zaxis * (z_size)
+                
+                frame.point += translation_vector
+                T = Transformation.from_frame_to_frame(brick_part.frame, frame)
+                part = brick_part.transformed(T)
 
-    #     """
-    #     error_msg = "Both parts have to be added to the assembly before a connection can be created."
-    #     if not self.graph.has_node(a_key) or not self.graph.has_node(b_key):
-    #         raise AssemblyError(error_msg)
-    #     #print(f"Adding connection between {a_key} and {b_key}")
-    #     return self.graph.add_edge(a_key, b_key, **kwargs)
+                part.frame = frame
+
+            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type})
+            z_value = frame.point.z
+            self.graph.node_attribute(part_key, 'z', z_value)
 
     def assembly_courses(self, tol=0.001):
         """Identify the courses in a wall of bricks.
@@ -948,6 +946,103 @@ class CAEAssembly(Assembly):
             self.graph.nodes_attribute(name='course', value=i, keys=course)
 
         return courses   
+
+
+    def project_part_faces(self, courses):
+        courses = self.assembly_courses()
+        sorted_parts = [part for course in courses for part in course]
+        polygons = {}
+        for part in sorted_parts:
+            frame_point = self.graph.node_attributes(part, 'xyz')
+            part = self.part(part)
+            for face in part.mesh.faces():
+                face_vertices = part.mesh.face_vertices(face)
+                face_coords = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+                if all(coord[2] == frame_point[2] for coord in face_coords):
+                    target_face = face
+            face_vertices = part.mesh.face_vertices(target_face)
+            vertices = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+            projected_vertices = [(x, y) for x, y, z in vertices]
+            polygon = Polygon(projected_vertices)
+            polygons[part.key] = polygon
+        return polygons
+
+
+    def compute_polygon_intersections(self, polygons, courses):
+        intersections = {}
+        for i in range(len(courses) - 1):
+            current_course = courses[i]
+            next_course = courses[i + 1]
+            for part in current_course:
+                part_polygon = polygons[part]
+                for neighbor in next_course:
+                    neighbor_polygon = polygons[neighbor]
+                    # Convert compas polygons to shapely polygons
+                    shapely_part_polygon = ShapelyPolygon([(point.x, point.y) for point in part_polygon.points])
+                    shapely_neighbor_polygon = ShapelyPolygon([(point.x, point.y) for point in neighbor_polygon.points])
+                    # Compute intersection
+                    intersection = shapely_part_polygon.intersection(shapely_neighbor_polygon)
+                    if not intersection.is_empty:
+                        # Convert shapely intersection back to compas polygon
+                        intersection_coords = list(intersection.exterior.coords)
+                        intersection_points = [Point(x, y, part_polygon.points[0].z) for x, y in intersection_coords]
+                        intersections[(part, neighbor)] = Polygon(intersection_points)
+        return intersections
+
+    # def transform_intersections_to_original_course(intersections, courses):
+    #     transformed_intersections = {}
+    #     for (part, neighbor), intersection in intersections.items():
+    #         part_course = next(i for i, course in enumerate(courses) if part in course)
+    #         neighbor_course = next(i for i, course in enumerate(courses) if neighbor in course)
+    #         if part_course < neighbor_course:
+    #             z_coord = my_assembly.graph.node_attribute(part, 'z')
+    #             transformed_intersection_points = [Point(p.x, p.y, z_coord) for p in intersection.points]
+    #             transformed_intersections[(part, neighbor)] = Polygon(transformed_intersection_points)
+    #         else:
+    #             z_coord = my_assembly.graph.node_attribute(neighbor, 'z')
+    #             transformed_intersection_points = [Point(p.x, p.y, z_coord) for p in intersection.points]
+    #             transformed_intersections[(neighbor, part)] = Polygon(transformed_intersection_points)
+
+    #         attr = {
+    #         'interface_type': 'face_face',
+    #         'interface_points': [(point.x, point.y, point.z) for point in transformed_intersection_points],
+    #         }
+    #         my_assembly.graph.add_edge(part, neighbor, attr_dict=attr)
+
+    #     return transformed_intersections
+
+    def transform_intersections_to_course_above(self, intersections, courses):
+        transformed_intersections = {}
+        for (part, neighbor), intersection in intersections.items():
+            neighbor_course = next(i for i, course in enumerate(courses) if neighbor in course)
+            z_coord = self.graph.node_attribute(neighbor, 'z')
+            transformed_intersection_points = [Point(p.x, p.y, z_coord) for p in intersection.points]
+            transformed_intersections[(part, neighbor)] = Polygon(transformed_intersection_points)
+
+            attr = {
+                'interface_type': 'face_face',
+                'interface_points': [(point.x, point.y, point.z) for point in transformed_intersection_points],
+            }
+            self.graph.add_edge(part, neighbor, attr_dict=attr)
+
+        return transformed_intersections
+
+
+    def set_interface_points(self):
+        for key in self.graph.nodes():
+            part = self.part(key)
+            frame_point = self.graph.node_attributes(key, 'xyz')
+            part = self.part(key)
+            for face in part.mesh.faces():
+                face_vertices = part.mesh.face_vertices(face)
+                face_coords = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+                if all(coord[2] == frame_point[2] for coord in face_coords):
+                    target_face = face
+            face_vertices = part.mesh.face_vertices(target_face)
+            vertices = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+            projected_vertices = [(x, y) for x, y, z in vertices]
+            polygon = Polygon(projected_vertices)
+            self.graph.node_attribute(key, 'interface_points', projected_vertices)
 
 
 
@@ -1042,182 +1137,3 @@ class CAEAssembly(Assembly):
 
         return sequence[::-1]
     
-    def _find_nearest_neighbours(self, cloud, nmax):
-        tree = cKDTree(cloud)
-        nnbrs = [tree.query(root, nmax) for root in cloud]
-        nnbrs = [(d.flatten().tolist(), n.flatten().tolist()) for d, n in nnbrs]
-        return nnbrs
-
-    def assembly_interfaces_numpy(self,
-                                nmax=10,
-                                tmax=1e-6,
-                                amin=1e-1,
-                                lmin=1e-3,
-                                face_face=True,
-                                face_edge=False,
-                                face_vertex=False):
-        """Identify the interfaces between the blocks of an assembly.
-
-        Parameters
-        ----------
-        assembly : compas_assembly.datastructures.Assembly
-            An assembly of discrete blocks.
-        nmax : int, optional
-            Maximum number of neighbours per block.
-            Default is ``10``.
-        tmax : float, optional
-            Maximum deviation from the perfectly flat interface plane.
-            Default is ``1e-6``.
-        amin : float, optional
-            Minimum area of a "face-face" interface.
-            Default is ``1e-1``.
-        lmin : float, optional
-            Minimum length of a "face-edge" interface.
-            Default is ``1e-3``.
-        face_face : bool, optional
-            Test for "face-face" interfaces.
-            Default is ``True``.
-        face_edge : bool, optional
-            Test for "face-edge" interfaces.
-            Default is ``False``.
-        face_vertex : bool, optional
-            Test for "face-vertex" interfaces.
-            Default is ``False``.
-
-        References
-        ----------
-        The identification of interfaces is discussed in detail here [Frick2016]_.
-
-        Examples
-        --------
-        .. code-block:: python
-
-            pass
-
-        """
-        # replace by something proper
-        self.graph.edge = {}
-        self.graph.halfedge = {}
-        for key in self.graph.nodes():
-            self.graph.edge[key] = {}
-            self.graph.halfedge[key] = {}
-
-        key_index = self.graph.node_index()
-        index_key = self.graph.index_node()
-
-        blocks = [self.part(key) for key in self.graph.nodes()]
-        nmax = min(nmax, len(blocks))
-        block_cloud = self.graph.nodes_attributes('xyz')
-
-        print("block_cloud:", block_cloud)
-
-        block_nnbrs = self._find_nearest_neighbours(block_cloud, nmax)
-
-        print("block_nnbrs:", block_nnbrs)
-
-        # k:      key of the base block
-        # i:      index of the base block
-        # block:  base block
-        # nbrs:   list of indices of the neighbouring blocks
-        # frames: list of frames for each of the faces of the base block
-
-        # f0:   key of the current base face
-        # A:    uvw base frame of f0
-        # o:    origin of the base frame of f0
-        # xyz0: xyz coordinates of the nodes of f0
-        # rst0: local coordinates of the nodes of f0, with respect to the frame of f0
-        # p0:   2D polygon of f0 in local coordinates
-
-        # j:   index of the current neighbour
-        # n:   key of the current neighbour
-        # nbr: neighbour block
-        # k_i: key index map for the nodes of the nbr block
-        # xyz: xyz coorindates of all nodes of nbr
-        # rst: local coordinates of all nodes of nbr, with respect to the frame of f0
-
-        # f1:   key of the current neighbour face
-        # rst1: local coordinates of the nodes of f1, with respect to the frame of f0
-        # p1:   2D polygon of f1 in local coordinates
-
-
-        for k in self.graph.nodes():
-            print(f"Processing block with key: {k}")
-            i = key_index[k]
-            print(f"Index of block: {i}")
-            block = self.part(k)
-            print(f"Block: {block}")
-            nbrs = block_nnbrs[i][1]
-            print(f"Neighbours: {nbrs}")
-
-            frames = block.face_frames
-            print(f"Frames: {frames}")
-            if face_face:
-                print("Checking face-face interfaces")
-                # parallelise?
-                # exclude faces with parallel normals
-                # e.g. exclude overlapping top faces of two neighbouring blocks in same row
-
-                for f0, (origin, uvw) in frames.items():
-                    print(f"Processing face: {f0}")
-                    A = array(uvw, dtype=float64)
-                    o = array(origin, dtype=float64).reshape((-1, 1))
-                    xyz0 = array(block.mesh.face_coordinates(f0), dtype=float64).reshape((-1, 3)).T
-                    rst0 = solve(A.T, xyz0 - o).T.tolist()
-                    p0 = Polygon(rst0)
-
-                    for j in nbrs:
-                        n = index_key[j]
-                        print(f"Processing neighbour: {n}")
-                        if n == k:
-                            print("Skipping self")
-                            continue
-
-                        if k in self.graph.edge and n in self.graph.edge[k]:
-                            print("Skipping existing edge")
-                            continue
-
-                        if n in self.graph.edge and k in self.graph.edge[n]:
-                            print("Skipping existing edge")
-                            continue
-
-                        nbr = self.part(n)
-                        print(f"Neighbour block: {nbr}")
-                        # print(nbr)
-                        k_i = {key: index for index, key in enumerate(nbr.mesh.vertices())}
-                        xyz = array(nbr.mesh.vertices_attributes('xyz'), dtype=float64).reshape((-1, 3)).T
-                        rst = solve(A.T, xyz - o).T.tolist()
-                        rst = {key: rst[k_i[key]] for key in nbr.mesh.vertices()}
-
-                        for f1 in nbr.mesh.faces():
-                            print(f"Processing neighbour face: {f1}")
-
-                            rst1 = [rst[key] for key in nbr.mesh.face_vertices(f1)]
-
-                            if any(m.fabs(t) > tmax for r, s, t in rst1):
-                                print("Skipping face due to tmax")
-                                continue
-
-                            p1 = Polygon(rst1)
-
-                            if p1.area < amin:
-                                print("Skipping face due to amin")
-                                continue
-
-                            if p0.intersects(p1):
-                                intersection = p0.intersection(p1)
-
-                                area = intersection.area
-
-                                if area >= amin:
-                                    coords = [[x, y, 0.0] for x, y, z in intersection.exterior.coords]
-                                    coords = local_to_world_coordinates_numpy(Frame(o, A[0], A[1]), coords)
-
-                                    attr = {
-                                        'interface_type': 'face_face',
-                                        'interface_size': area,
-                                        'interface_points': coords.tolist()[:-1],
-                                        'interface_origin': origin,
-                                        'interface_uvw': uvw,
-                                    }
-
-                                    self.graph.add_edge(k, n, attr_dict=attr)
