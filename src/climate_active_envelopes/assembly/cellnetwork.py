@@ -553,3 +553,77 @@ class CAECellNetwork(CellNetwork):
             'curve_end_point': curve_end_point,
             'face_normal': face_normal
         } 
+    
+    def generate_assembly_data_from_mesh_face(self, mesh, face_key, course_height):
+        """Calculate the properties of the wall faces in the COMPAS mesh.
+
+        Parameters
+        ----------
+        mesh : :class:`Mesh`
+            The COMPAS mesh data structure.
+        face_key : int
+            The key of the face to select.
+        course_height : float
+            The height of the course.
+        
+        Returns
+        -------
+        dict
+            A dictionary of wall face edges.
+        """
+        face = face_key
+        face_normal = vector_to_rhino(mesh.face_normal(face))
+
+        face_edges = mesh.face_halfedges(face)
+        
+        # Get the height of the vertical edge
+        vertical_edges = [edge for edge in face_edges if abs(mesh.edge_vector(*edge)[2]) > 0]
+        edge_height = abs(mesh.edge_length(*vertical_edges[0]))
+
+        # Identify the starting and ending edges
+        start_edge = vertical_edges[-1]
+        end_edge = vertical_edges[0]
+        start_edge_type = mesh.edge_attribute(start_edge, 'edge_type')
+        end_edge_type = mesh.edge_attribute(end_edge, 'edge_type')
+
+        # Get the length of the horizontal edge
+        horizontal_edges = [edge for edge in face_edges if abs(mesh.edge_vector(*edge)[2]) == 0]
+        edge_length = abs(mesh.edge_length(*horizontal_edges[0]))
+
+        # Get the direction vector of the first horizontal edge
+        horizontal_edge_vector = mesh.edge_vector(*horizontal_edges[0])
+        horizontal_edge_vector.unitize()
+
+        # Handle different orientations explicitly
+        direction_vector = vector_to_rhino(horizontal_edge_vector)
+
+        curve_start_point = mesh.vertex_coordinates(horizontal_edges[0][0])
+        curve_end_point = mesh.vertex_coordinates(horizontal_edges[0][1])
+
+        print(f"Initial curve_start_point: {edge_length}")
+        print(f"Initial curve_end_point: {edge_height}")
+
+        num_courses = abs(edge_height / course_height)
+
+        # Add starting and ending edges and their types as attributes to the current face
+        mesh.face_attribute(face, 'start_edge', start_edge)
+        mesh.face_attribute(face, 'start_edge_type', start_edge_type)
+        mesh.face_attribute(face, 'end_edge', end_edge)
+        mesh.face_attribute(face, 'end_edge_type', end_edge_type)
+        mesh.face_attribute(face, 'direction_vector', direction_vector)
+
+        return {
+            'face': face,
+            'face_type': mesh.face_attribute(face, 'face_type'),
+            'start_edge': start_edge,
+            'start_edge_type': start_edge_type,
+            'end_edge': end_edge,
+            'end_edge_type': end_edge_type,
+            'direction_vector': direction_vector,
+            'edge_height': edge_height,
+            'edge_length': edge_length,
+            'num_courses': num_courses,
+            'curve_start_point': curve_start_point,
+            'curve_end_point': curve_end_point,
+            'face_normal': face_normal
+        }
