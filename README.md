@@ -37,7 +37,7 @@ Execute the commands below in Anaconda Prompt:
 #### Install dependencies on Rhino 8 Python 3 with Rhinocode
 
     (cae) cd .rhinocode\py39-rh8
-    (cae) python.exe -m pip install compas==2.2.0 compas_robots==0.4.0 roslibpy pyserial
+    (cae) python.exe -m pip install compas==2.6.1 compas_robots==0.6.0 roslibpy pyserial
     (cae) python.exe -m pip install --no-deps compas_fab
 
 #### Install Ladybug Tools to run the climatic simulations
