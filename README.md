@@ -13,10 +13,11 @@
 * [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 
 ## Dependencies
-* [compas 2.2.0](https://compas.dev/index.html)
+* [compas 2.6.1](https://compas.dev/index.html)
 * [compas_fab 1.0.2 or higher](https://gramaziokohler.github.io/compas_fab/latest/)
 * [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
 * [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0)
+* [Shapely](https://pypi.org/project/shapely/) 
 
 ## Getting Started
 
@@ -39,6 +40,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) cd .rhinocode\py39-rh8
     (cae) python.exe -m pip install compas==2.6.1 compas_robots==0.6.0 roslibpy pyserial
     (cae) python.exe -m pip install --no-deps compas_fab
+    (cae) python.exe -m pip install shapely 
 
 #### Install Ladybug Tools to run the climatic simulations
 * Download and Install [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) and [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) to get access to the latest Ladybug Tools and its simulations
