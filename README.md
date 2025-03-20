@@ -11,12 +11,13 @@
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
 * [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0)
+* [Docker](https://www.docker.com/)
 
 ## Dependencies
-* [compas 2.2.0](https://compas.dev/index.html)
+* [compas 2.6.1](https://compas.dev/index.html)
 * [compas_fab 1.0.2 or higher](https://gramaziokohler.github.io/compas_fab/latest/)
-* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
-* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0)
+* [Shapely](https://pypi.org/project/shapely/) 
 
 ## Getting Started
 
@@ -39,6 +40,7 @@ Execute the commands below in Anaconda Prompt:
     (cae) cd .rhinocode\py39-rh8
     (cae) python.exe -m pip install compas==2.6.1 compas_robots==0.6.0 roslibpy pyserial
     (cae) python.exe -m pip install --no-deps compas_fab
+    (cae) python.exe -m pip install shapely 
 
 #### Install Ladybug Tools to run the climatic simulations
 * Download and Install [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) and [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) to get access to the latest Ladybug Tools and its simulations
@@ -50,13 +52,13 @@ Execute the commands below in Anaconda Prompt:
 
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
   
-Open Github Desktop and clone
+Open Github Desktop and clone the following repositories into you workspace folder:
 
-* [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder 
-* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
-* [mobile_robot_control](https://github.com/augmentedfabricationlab/mobile_robot_control) into you workspace folder.
-* [ur_fabrication_control](https://github.com/augmentedfabricationlab/ur_fabrication_control) into you workspace folder.
-* [fabrication_manager](https://github.com/augmentedfabricationlab/fabrication_manager) into you workspace folder.
+* [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes), 
+* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model),
+* [mobile_robot_control](https://github.com/augmentedfabricationlab/mobile_robot_control), 
+* [ur_fabrication_control](https://github.com/augmentedfabricationlab/ur_fabrication_control), 
+* [fabrication_manager](https://github.com/augmentedfabricationlab/fabrication_manager). 
 
 SWITCH TO compas2 BRANCH IN MOBILE_ROBOT_CONTROL AND UR_FABRICATION_CONTROL!!!!
 
