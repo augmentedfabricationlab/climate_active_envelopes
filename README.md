@@ -37,12 +37,13 @@ Execute the commands below in Anaconda Prompt:
 
 #### Install dependencies on Rhino 8 Python 3 with Rhinocode
 
-    (cae) cd .rhinocode\py39-rh8
-    
 It is good practice to ensure that you are using the latest version of pip. To update pip, run the following command:
 
-    (cae) python.exe -m pip install --upgrade pip
-    
+    (cae) python -m pip install --upgrade pip
+
+Then run the installation in the rhinocode folder
+
+    (cae) cd .rhinocode\py39-rh8  
     (cae) python.exe -m pip install compas==2.6.1 compas_robots==0.6.0 roslibpy pyserial
     (cae) python.exe -m pip install --no-deps compas_fab
     (cae) python.exe -m pip install shapely 
