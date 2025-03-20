@@ -111,13 +111,15 @@ class CAEAssembly(Assembly):
 
         return brick_length, brick_height, brick_width, brick_length_h
     
-    def compute_brick_layout(self, cell_network, course_height, brick_spacing):
+    def compute_brick_layout(self, cell_network, course_height, brick_spacing, input_type):
 
         # get the dimensions of the bricks
         brick_length, _, brick_width, _, = self.get_brick_dimensions()
 
         # get the assembly data from the cell network
-        assembly_data = cell_network.generate_assembly_data_from_cellnetwork(cell_network, course_height)
+        #assembly_data = cell_network.generate_assembly_data_from_cellnetwork(cell_network, course_height)
+        assembly_data = cell_network.generate_assembly_data(cell_network, course_height, input_type)
+
 
         direction_vector = assembly_data['direction_vector']
         edge_length = assembly_data['edge_length']
@@ -163,9 +165,10 @@ class CAEAssembly(Assembly):
                       wall_system,  
                       brick_spacing, 
                       course_height, 
+                      input_type
                       ):
 
-        course_brick_data = self.compute_brick_layout(cell_network, course_height, brick_spacing)
+        course_brick_data = self.compute_brick_layout(cell_network, course_height, brick_spacing, input_type)
         
         for j, data in enumerate(course_brick_data):
             bricks_per_course, course_is_odd, direction_vector, start_edge_type, end_edge_type, curve_midpoint, adjusted_start_point, adjusted_end_point = data
@@ -223,7 +226,6 @@ class CAEAssembly(Assembly):
                         end_edge_type=end_edge_type,
                         j=j
                         )
-
 
     def create_brick_and_add_to_assembly(self,
                         brick_type, 
@@ -539,7 +541,6 @@ class CAEAssembly(Assembly):
                     T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
                     insulated_frame = insulated_frame .transformed(T3)
                     self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-
 
     def generate_flemish_bond(self,
                                 initial_brick_position,

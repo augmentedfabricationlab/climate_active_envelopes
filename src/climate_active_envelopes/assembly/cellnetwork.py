@@ -7,7 +7,7 @@ import math as m
 
 #from compas_fab.robots import JointTrajectoryPoint
 
-from compas.datastructures import CellNetwork
+from compas.datastructures import CellNetwork, Mesh
 from compas.geometry import Frame, Vector
 from compas_rhino.conversions import mesh_to_compas, point_to_rhino, mesh_to_rhino, vector_to_rhino
 import Rhino.Geometry as rg
@@ -478,69 +478,103 @@ class CAECellNetwork(CellNetwork):
         """
 
         pass
-    
-    
-    def generate_assembly_data_from_cellnetwork(self, cell_network, course_height):
-        """Calculate the properties of the wall faces in the cell network.
+
+    def generate_assembly_data(self, input_data, course_height, input_type):
+
+        """Calculate the properties of the wall faces in the cell network or COMPAS mesh.
 
         Parameters
         ----------
-        cell_network : :class:`CellNetwork`
-            The cell network data structure.
-        face : int
-            The current_face to select.
+        input_data : :class:`CellNetwork` or :class:`Mesh`
+            The cell network or COMPAS mesh data structure.
         course_height : float
             The height of the course.
+        input_type : str, optional
+            The type of input data, either 'cell_network' or 'mesh'. Default is 'cell_network'.
         
         Returns
         -------
         dict
             A dictionary of wall face edges.
         """
-        face = cell_network.current_face
-        face_normal = vector_to_rhino(cell_network.face_normal(face))
 
-        face_edges_data = self.select_face_and_get_adjacent_edges(cell_network, face)
-        
-        # Get the height of the vertical edge
-        vertical_edges = [edge['edge'] for edge in face_edges_data['vertical_edges']]
-        edge_height = abs(cell_network.edge_length(vertical_edges[0]))
+        if input_type == 'cell_network':
+            face = input_data.current_face
+            face_normal = vector_to_rhino(input_data.face_normal(face))
+            face_edges_data = self.select_face_and_get_adjacent_edges(input_data, face)
+            
+            vertical_edges = [edge['edge'] for edge in face_edges_data['vertical_edges']]
+            edge_height = abs(input_data.edge_length(vertical_edges[0]))
 
-        # Identify the starting and ending edges
-        start_edge = vertical_edges[-1]
-        end_edge = vertical_edges[0]
-        start_edge_type = cell_network.edge_attribute(start_edge, 'edge_type')
-        end_edge_type = cell_network.edge_attribute(end_edge, 'edge_type')
+            start_edge = vertical_edges[-1]
+            end_edge = vertical_edges[0]
+            start_edge_type = input_data.edge_attribute(start_edge, 'edge_type')
+            end_edge_type = input_data.edge_attribute(end_edge, 'edge_type')
 
-        # Get the length of the horizontal edge
-        horizontal_edges = [edge['edge'] for edge in face_edges_data['horizontal_edges']]
-        edge_length = abs(cell_network.edge_length(horizontal_edges[0]))
+            horizontal_edges = [edge['edge'] for edge in face_edges_data['horizontal_edges']]
+            edge_length = abs(input_data.edge_length(horizontal_edges[0]))
 
-        # Get the direction vector of the first horizontal edge
-        horizontal_edge_vector = cell_network.edge_vector(horizontal_edges[0])
-        horizontal_edge_vector.unitize()
+            horizontal_edge_vector = input_data.edge_vector(horizontal_edges[0])
+            horizontal_edge_vector.unitize()
 
-        # Handle different orientations explicitly
-        direction_vector = vector_to_rhino(horizontal_edge_vector)
+            direction_vector = vector_to_rhino(horizontal_edge_vector)
 
-        curve_start_point = cell_network.edge_start(horizontal_edges[0])
-        curve_end_point = cell_network.edge_end(horizontal_edges[0])
+            curve_start_point = input_data.edge_start(horizontal_edges[0])
+            curve_end_point = input_data.edge_end(horizontal_edges[0])
 
-        print(f"Initial curve_start_point: {edge_length}")
-        print(f"Initial curve_end_point: {edge_height}")
+        elif input_type == 'mesh':
+            face = 0
+            face_normal = vector_to_rhino(input_data.face_normal(face))
+            face_edges = input_data.face_halfedges(face)
+
+            vertical_edges = [edge for edge in face_edges if abs(input_data.edge_vector(edge)[2]) > 0]
+            edge_height = abs(input_data.edge_length(vertical_edges[0]))
+
+            start_edge = vertical_edges[-1]
+            end_edge = vertical_edges[0]
+
+            # Set edge_type to "nothing attaching"
+            input_data.edge_attribute(start_edge, 'edge_type', 'nothing attaching')
+            input_data.edge_attribute(end_edge, 'edge_type', 'nothing attaching')
+
+            start_edge_type = input_data.edge_attribute(start_edge, 'edge_type')
+            end_edge_type = input_data.edge_attribute(end_edge, 'edge_type')
+
+            # Set face_type to "outer wall"
+            input_data.face_attribute(face, 'face_type', 'outer wall')
+
+            horizontal_edges = [edge for edge in face_edges if abs(input_data.edge_vector(edge)[2]) == 0]
+            edge_length = abs(input_data.edge_length(horizontal_edges[0]))
+
+            horizontal_edge_vector = input_data.edge_vector(horizontal_edges[0])
+            horizontal_edge_vector.unitize()
+
+            direction_vector = vector_to_rhino(horizontal_edge_vector)
+
+            curve_start_point = input_data.vertex_coordinates(horizontal_edges[0][0])
+            curve_end_point = input_data.vertex_coordinates(horizontal_edges[0][1])
+
+        else:
+            raise ValueError("Invalid input_type. Must be 'cell_network' or 'mesh'.")
 
         num_courses = abs(edge_height / course_height)
 
-        # Add starting and ending edges and their types as attributes to the current face
-        cell_network.face_attribute(face, 'start_edge', start_edge)
-        cell_network.face_attribute(face, 'start_edge_type', start_edge_type)
-        cell_network.face_attribute(face, 'end_edge', end_edge)
-        cell_network.face_attribute(face, 'end_edge_type', end_edge_type)
-        cell_network.face_attribute(face, 'direction_vector', direction_vector)
+        if input_type == 'cell_network':
+            input_data.face_attribute(face, 'start_edge', start_edge)
+            input_data.face_attribute(face, 'start_edge_type', start_edge_type)
+            input_data.face_attribute(face, 'end_edge', end_edge)
+            input_data.face_attribute(face, 'end_edge_type', end_edge_type)
+            input_data.face_attribute(face, 'direction_vector', direction_vector)
+        elif input_type == 'mesh':
+            input_data.face_attribute(face, 'start_edge', start_edge)
+            input_data.face_attribute(face, 'start_edge_type', start_edge_type)
+            input_data.face_attribute(face, 'end_edge', end_edge)
+            input_data.face_attribute(face, 'end_edge_type', end_edge_type)
+            input_data.face_attribute(face, 'direction_vector', direction_vector)
 
         return {
-            'face': face_edges_data['selected_face'],
-            'face_type': face_edges_data['face_type'],
+            'face': face,
+            'face_type': input_data.face_attribute(face, 'face_type'),
             'start_edge': start_edge,
             'start_edge_type': start_edge_type,
             'end_edge': end_edge,
@@ -552,9 +586,82 @@ class CAECellNetwork(CellNetwork):
             'curve_start_point': curve_start_point,
             'curve_end_point': curve_end_point,
             'face_normal': face_normal
-        } 
+        }
+    # def generate_assembly_data_from_cellnetwork(self, cell_network, course_height):
+    #     """Calculate the properties of the wall faces in the cell network.
+
+    #     Parameters
+    #     ----------
+    #     cell_network : :class:`CellNetwork`
+    #         The cell network data structure.
+    #     face : int
+    #         The current_face to select.
+    #     course_height : float
+    #         The height of the course.
+        
+    #     Returns
+    #     -------
+    #     dict
+    #         A dictionary of wall face edges.
+    #     """
+    #     face = cell_network.current_face
+    #     face_normal = vector_to_rhino(cell_network.face_normal(face))
+
+    #     face_edges_data = self.select_face_and_get_adjacent_edges(cell_network, face)
+        
+    #     # Get the height of the vertical edge
+    #     vertical_edges = [edge['edge'] for edge in face_edges_data['vertical_edges']]
+    #     edge_height = abs(cell_network.edge_length(vertical_edges[0]))
+
+    #     # Identify the starting and ending edges
+    #     start_edge = vertical_edges[-1]
+    #     end_edge = vertical_edges[0]
+    #     start_edge_type = cell_network.edge_attribute(start_edge, 'edge_type')
+    #     end_edge_type = cell_network.edge_attribute(end_edge, 'edge_type')
+
+    #     # Get the length of the horizontal edge
+    #     horizontal_edges = [edge['edge'] for edge in face_edges_data['horizontal_edges']]
+    #     edge_length = abs(cell_network.edge_length(horizontal_edges[0]))
+
+    #     # Get the direction vector of the first horizontal edge
+    #     horizontal_edge_vector = cell_network.edge_vector(horizontal_edges[0])
+    #     horizontal_edge_vector.unitize()
+
+    #     # Handle different orientations explicitly
+    #     direction_vector = vector_to_rhino(horizontal_edge_vector)
+
+    #     curve_start_point = cell_network.edge_start(horizontal_edges[0])
+    #     curve_end_point = cell_network.edge_end(horizontal_edges[0])
+
+    #     print(f"Initial curve_start_point: {edge_length}")
+    #     print(f"Initial curve_end_point: {edge_height}")
+
+    #     num_courses = abs(edge_height / course_height)
+
+    #     # Add starting and ending edges and their types as attributes to the current face
+    #     cell_network.face_attribute(face, 'start_edge', start_edge)
+    #     cell_network.face_attribute(face, 'start_edge_type', start_edge_type)
+    #     cell_network.face_attribute(face, 'end_edge', end_edge)
+    #     cell_network.face_attribute(face, 'end_edge_type', end_edge_type)
+    #     cell_network.face_attribute(face, 'direction_vector', direction_vector)
+
+    #     return {
+    #         'face': face_edges_data['selected_face'],
+    #         'face_type': face_edges_data['face_type'],
+    #         'start_edge': start_edge,
+    #         'start_edge_type': start_edge_type,
+    #         'end_edge': end_edge,
+    #         'end_edge_type': end_edge_type,
+    #         'direction_vector': direction_vector,
+    #         'edge_height': edge_height,
+    #         'edge_length': edge_length,
+    #         'num_courses': num_courses,
+    #         'curve_start_point': curve_start_point,
+    #         'curve_end_point': curve_end_point,
+    #         'face_normal': face_normal
+    #     } 
     
-    def generate_assembly_data_from_mesh_face(self, mesh, face_key, course_height):
+    # def generate_assembly_data_from_mesh_face(self, mesh, course_height):
         """Calculate the properties of the wall faces in the COMPAS mesh.
 
         Parameters
@@ -571,27 +678,27 @@ class CAECellNetwork(CellNetwork):
         dict
             A dictionary of wall face edges.
         """
-        face = face_key
-        face_normal = vector_to_rhino(mesh.face_normal(face))
+        face_normal = vector_to_rhino(mesh.face_normal(0))
+        face_edges = mesh.face_halfedges(0)
 
-        face_edges = mesh.face_halfedges(face)
-        
         # Get the height of the vertical edge
-        vertical_edges = [edge for edge in face_edges if abs(mesh.edge_vector(*edge)[2]) > 0]
-        edge_height = abs(mesh.edge_length(*vertical_edges[0]))
+        vertical_edges = [edge for edge in face_edges if abs(mesh.edge_vector(edge)[2]) > 0]
+        edge_height = abs(mesh.edge_length(vertical_edges[0]))
 
         # Identify the starting and ending edges
         start_edge = vertical_edges[-1]
         end_edge = vertical_edges[0]
+
         start_edge_type = mesh.edge_attribute(start_edge, 'edge_type')
         end_edge_type = mesh.edge_attribute(end_edge, 'edge_type')
 
         # Get the length of the horizontal edge
-        horizontal_edges = [edge for edge in face_edges if abs(mesh.edge_vector(*edge)[2]) == 0]
-        edge_length = abs(mesh.edge_length(*horizontal_edges[0]))
+        horizontal_edges = [edge for edge in face_edges if abs(mesh.edge_vector(edge)[2]) == 0]
+        edge_length = abs(mesh.edge_length(horizontal_edges[0]))
+
 
         # Get the direction vector of the first horizontal edge
-        horizontal_edge_vector = mesh.edge_vector(*horizontal_edges[0])
+        horizontal_edge_vector = mesh.edge_vector(horizontal_edges[0])
         horizontal_edge_vector.unitize()
 
         # Handle different orientations explicitly
@@ -606,15 +713,15 @@ class CAECellNetwork(CellNetwork):
         num_courses = abs(edge_height / course_height)
 
         # Add starting and ending edges and their types as attributes to the current face
-        mesh.face_attribute(face, 'start_edge', start_edge)
-        mesh.face_attribute(face, 'start_edge_type', start_edge_type)
-        mesh.face_attribute(face, 'end_edge', end_edge)
-        mesh.face_attribute(face, 'end_edge_type', end_edge_type)
-        mesh.face_attribute(face, 'direction_vector', direction_vector)
+        mesh.face_attribute(0, 'start_edge', start_edge)
+        mesh.face_attribute(0, 'start_edge_type', start_edge_type)
+        mesh.face_attribute(0, 'end_edge', end_edge)
+        mesh.face_attribute(0, 'end_edge_type', end_edge_type)
+        mesh.face_attribute(0, 'direction_vector', direction_vector)
 
         return {
-            'face': face,
-            'face_type': mesh.face_attribute(face, 'face_type'),
+            'face': 0,
+            'face_type': mesh.face_attribute(0, 'face_type'),
             'start_edge': start_edge,
             'start_edge_type': start_edge_type,
             'end_edge': end_edge,
