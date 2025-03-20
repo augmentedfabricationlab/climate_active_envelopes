@@ -11,12 +11,12 @@
 * [Visual Studio Code](https://code.visualstudio.com/)
 * [GitHub Desktop](https://desktop.github.com/)
 * [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
+* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0)
+* [Docker](https://www.docker.com/)
 
 ## Dependencies
 * [compas 2.6.1](https://compas.dev/index.html)
 * [compas_fab 1.0.2 or higher](https://gramaziokohler.github.io/compas_fab/latest/)
-* [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools)
-* [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0)
 * [Shapely](https://pypi.org/project/shapely/) 
 
 ## Getting Started
