@@ -111,14 +111,14 @@ class CAEAssembly(Assembly):
 
         return brick_length, brick_height, brick_width, brick_length_h
     
-    def compute_brick_layout(self, cell_network, course_height, brick_spacing, input_type):
+    def compute_brick_layout(self, cell_network, mesh, course_height, brick_spacing, input_type):
 
         # get the dimensions of the bricks
         brick_length, _, brick_width, _, = self.get_brick_dimensions()
 
         # get the assembly data from the cell network
         #assembly_data = cell_network.generate_assembly_data_from_cellnetwork(cell_network, course_height)
-        assembly_data = cell_network.generate_assembly_data(cell_network, course_height, input_type)
+        assembly_data = cell_network.generate_assembly_data(mesh, course_height, input_type)
 
 
         direction_vector = assembly_data['direction_vector']
@@ -165,10 +165,11 @@ class CAEAssembly(Assembly):
                       wall_system,  
                       brick_spacing, 
                       course_height, 
-                      input_type
+                      input_type,
+                      mesh
                       ):
 
-        course_brick_data = self.compute_brick_layout(cell_network, course_height, brick_spacing, input_type)
+        course_brick_data = self.compute_brick_layout(cell_network, mesh, course_height, brick_spacing, input_type)
         
         for j, data in enumerate(course_brick_data):
             bricks_per_course, course_is_odd, direction_vector, start_edge_type, end_edge_type, curve_midpoint, adjusted_start_point, adjusted_end_point = data
@@ -977,7 +978,6 @@ class CAEAssembly(Assembly):
 
         return courses   
 
-
     def project_part_faces(self, courses):
         courses = self.assembly_courses()
         sorted_parts = [part for course in courses for part in course]
@@ -996,7 +996,6 @@ class CAEAssembly(Assembly):
             polygon = Polygon(projected_vertices)
             polygons[part.key] = polygon
         return polygons
-
 
     def compute_polygon_intersections(self, polygons, courses):
         intersections = {}
@@ -1057,7 +1056,6 @@ class CAEAssembly(Assembly):
 
         return transformed_intersections
 
-
     def set_interface_points(self):
         for key in self.graph.nodes():
             part = self.part(key)
@@ -1073,8 +1071,6 @@ class CAEAssembly(Assembly):
             projected_vertices = [(x, y) for x, y, z in vertices]
             polygon = Polygon(projected_vertices)
             self.graph.node_attribute(key, 'interface_points', projected_vertices)
-
-
 
     def assembly_building_sequence(self, key):
         """Determine the sequence of bricks that need to be assembled to be able to

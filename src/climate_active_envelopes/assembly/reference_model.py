@@ -12,7 +12,7 @@ from compas.geometry import Frame, Vector
 from compas_rhino.conversions import mesh_to_compas, point_to_rhino, mesh_to_rhino, vector_to_rhino
 import Rhino.Geometry as rg
 
-class CAECellNetwork(CellNetwork):
+class CAEReferenceModel(CellNetwork):
     """A data structure for the climate active envelopes' cellnetwork 
     containing the information of building components.
 
@@ -37,15 +37,15 @@ class CAECellNetwork(CellNetwork):
 
     def initialize_network(self):
         """Initialize the cell network by sorting faces and edges by type."""
-        self.sort_faces_by_type(self)
-        self.sort_edges_by_type(self)
+        self.sort_faces_by_type()
+        self.sort_edges_by_type()
 
-    def find_or_add_vertex(self, cell_network, x, y, z):
-        for vkey in cell_network.vertices():
-            vx, vy, vz = cell_network.vertex_coordinates(vkey)
+    def find_or_add_vertex(self, x, y, z):
+        for vkey in self.vertices():
+            vx, vy, vz = self.vertex_coordinates(vkey)
             if vx == x and vy == y and vz == z:
                 return vkey
-        return cell_network.add_vertex(x=x, y=y, z=z)
+        return self.add_vertex(x=x, y=y, z=z)
 
     def create_cell_network(self, meshes):
         """Create a cell network from a list of meshes.
@@ -67,7 +67,7 @@ class CAECellNetwork(CellNetwork):
                 face_vertices = []
                 for vkey in mesh.face_vertices(fkey):
                     x, y, z = mesh.vertex_coordinates(vkey)
-                    vertex = self.find_or_add_vertex(self, x, y, z) 
+                    vertex = self.find_or_add_vertex(x, y, z) 
                     face_vertices.append(vertex)
                 
                 face_exists = False
@@ -85,7 +85,7 @@ class CAECellNetwork(CellNetwork):
 
         return self 
     
-    def create_face_cell_dict(self, cell_network):
+    def create_face_cell_dict(self):
         """Sort faces to corresponding cells.
 
         Parameters:
@@ -100,8 +100,8 @@ class CAECellNetwork(CellNetwork):
         """
         #List of the faces in the corresponding cells
         sort_faces_in_cells = []
-        for cell in cell_network.cells():
-            for face in cell_network.cell_faces(cell):
+        for cell in self.cells():
+            for face in self.cell_faces(cell):
                 sort_faces_in_cells.append((face, cell))
 
         # Store faces with its corresponding cell
@@ -113,7 +113,7 @@ class CAECellNetwork(CellNetwork):
              
         return faces_to_cell_dict
     
-    def sort_faces_by_type(self, cell_network):
+    def sort_faces_by_type(self):
         """Sort faces by building type.
 
         Parameters
@@ -130,11 +130,11 @@ class CAECellNetwork(CellNetwork):
         face_types = {'walls': [], 'slabs': []}
 
         # Create a dictionary mapping faces to cells
-        faces_to_cells_dict = self.create_face_cell_dict(cell_network)
+        faces_to_cells_dict = self.create_face_cell_dict()
 
         # Classify faces as 'outer walls' or 'slabs'
         for face, cell in faces_to_cells_dict.items():
-            normal = cell_network.face_normal(face)
+            normal = self.face_normal(face)
             #face between minimum two cells and within the vertical faces
             if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]): 
                 face_type = 'inner wall'
@@ -150,14 +150,14 @@ class CAECellNetwork(CellNetwork):
                 face_type = 'slab'
                 face_types['slabs'].append((face, face_type))
 
-            cell_network.face_attribute(face, 'face_type', face_type)
+            self.face_attribute(face, 'face_type', face_type)
 
-        cell_network.face_types = face_types
+        self.face_types = face_types
 
         return face_types
     
 
-    def get_face_types(self, cell_network):
+    def get_face_types(self):
         """Get the face types from the cell network.
 
         Parameters
@@ -170,10 +170,10 @@ class CAECellNetwork(CellNetwork):
         dict
             A dictionary with face types.
         """
-        return getattr(cell_network, 'edge_types', {'walls': [], 'slabs': []})
+        return getattr(self, 'edge_types', {'walls': [], 'slabs': []})
     
     
-    def create_edge_cell_dict(self, cell_network):
+    def create_edge_cell_dict(self):
         """Sort faces to corresponding cells.
 
         Parameters:
@@ -187,9 +187,9 @@ class CAECellNetwork(CellNetwork):
             A dictionary with faces and corresponding cells.
         """
         sort_edges_in_cells = []
-        for cell in cell_network.cells():
+        for cell in self.cells():
             cell_edges = []
-            for edge in cell_network.cell_edges(cell):
+            for edge in self.cell_edges(cell):
                 u, v = edge
                 if (u, v) not in cell_edges and (v, u) not in cell_edges:
                     cell_edges.append((u, v))
@@ -206,7 +206,7 @@ class CAECellNetwork(CellNetwork):
              
         return edges_to_cell_dict
     
-    def sort_edges_by_type(self, cell_network):
+    def sort_edges_by_type(self):
         """Sort edges by type.
 
         Parameters
@@ -223,11 +223,11 @@ class CAECellNetwork(CellNetwork):
         edge_types = {'vertical_edges': [], 'horizontal_edges': []}
 
         # Create a dictionary mapping faces to cells
-        edges_to_cells_dict = self.create_edge_cell_dict(cell_network)
+        edges_to_cells_dict = self.create_edge_cell_dict()
 
         # Classify faces as 'outer walls' or 'slabs'
         for edge, cell in edges_to_cells_dict.items():
-            direction_vector = cell_network.edge_vector(edge)
+            direction_vector = self.edge_vector(edge)
             direction_vector.unitize()
 
             if len(cell) >= 2 and (direction_vector[2] in [-1, 1]):
@@ -241,14 +241,14 @@ class CAECellNetwork(CellNetwork):
                 edge_type = 'beam'
                 edge_types['horizontal_edges'].append((edge, edge_type))
 
-            cell_network.edge_attribute(edge, 'edge_type', edge_type)
+            self.edge_attribute(edge, 'edge_type', edge_type)
 
-        cell_network.edge_types = edge_types
+        self.edge_types = edge_types
 
         return edge_types
     
 
-    def get_edge_types(self, cell_network):
+    def get_edge_types(self):
         """Get the edge types from the cell network.
 
         Parameters
@@ -261,11 +261,11 @@ class CAECellNetwork(CellNetwork):
         dict
             A dictionary with edge types.
         """
-        return getattr(cell_network, 'edge_types', {'vertical_edges': [], 'horizontal_edges': []})
+        return getattr('edge_types', {'vertical_edges': [], 'horizontal_edges': []})
 
 
 
-    def select_face_by_fkey(self, cell_network, face_key):
+    def select_face_by_fkey(self, face_key):
         """Select the face by key from the cell network.
 
         Parameters
@@ -281,15 +281,15 @@ class CAECellNetwork(CellNetwork):
             The selected face.
         """
 
-        for key, face in enumerate(cell_network.faces()):
+        for key, face in enumerate(self.faces()):
             if key == face_key:
                 selected_face = face
-                face_type = cell_network.face_attribute(face, 'face_type')
+                face_type = self.face_attribute(face, 'face_type')
 
         return selected_face, face_type
     
 
-    def select_edge_by_ekey(self, cell_network, edge_key):
+    def select_edge_by_ekey(self, edge_key):
         """Select the edge by key from the cell network.
 
         Parameters
@@ -305,15 +305,15 @@ class CAECellNetwork(CellNetwork):
             The selected edge.
         """
 
-        for key, edge in enumerate(cell_network.edges()):
+        for key, edge in enumerate(self.edges()):
             if key == edge_key:
                 selected_edge = edge
-                edge_type = cell_network.edge_attribute(edge, 'edge_type')
+                edge_type = self.edge_attribute(edge, 'edge_type')
 
         return selected_edge, edge_type
 
 
-    def select_edge_and_get_adjacent_faces(self, cell_network, edge_key):
+    def select_edge_and_get_adjacent_faces(self, edge_key):
         """Select adjacent faces by the selected edge and sort them by type.
 
         Parameters
@@ -329,8 +329,8 @@ class CAECellNetwork(CellNetwork):
             A dictionary with sorted faces and edges by type.
         """
         
-        selected_edge, edge_type = self.select_edge_by_ekey(cell_network, edge_key)
-        selected_edge_faces = cell_network.edge_faces(selected_edge)
+        selected_edge, edge_type = self.select_edge_by_ekey(edge_key)
+        selected_edge_faces = self.edge_faces(selected_edge)
 
         # Create a dictionary to store the selected edge and its adjacent faces
         edge_and_faces = {
@@ -341,7 +341,7 @@ class CAECellNetwork(CellNetwork):
 
         # Add edge_type for each selected_edge_face
         for face in selected_edge_faces:
-            face_type = cell_network.face_attribute(face, 'face_type')
+            face_type = self.face_attribute(face, 'face_type')
             edge_and_faces['selected_edge_faces'].append({
                 'face': face,
                 'face_type': face_type
@@ -350,7 +350,7 @@ class CAECellNetwork(CellNetwork):
         return edge_and_faces
 
 
-    def select_face_and_get_adjacent_edges(self, cell_network, face_key):
+    def select_face_and_get_adjacent_edges(self, face_key):
         """Select adjacent edges by the selected face and sort them by type.
 
         Parameters
@@ -366,12 +366,12 @@ class CAECellNetwork(CellNetwork):
             A dictionary with sorted edges and faces by type.
         """
         # Select the face by key
-        current_face, face_type = self.select_face_by_fkey(cell_network, face_key)
+        current_face, face_type = self.select_face_by_fkey(face_key)
 
         # Get the edges of the selected face
         face_edges = self.face_edges(current_face)
 
-        edge_types = self.get_edge_types(cell_network)
+        #edge_types = self.get_edge_types()
 
         face_and_edges = {
             'selected_face': current_face,
@@ -383,7 +383,7 @@ class CAECellNetwork(CellNetwork):
 
         # Add edge_type for each face_edge and classify them as vertical or horizontal
         for edge in face_edges:
-            edge_type = cell_network.edge_attribute(edge, 'edge_type')
+            edge_type = self.edge_attribute(edge, 'edge_type')
             # face_and_edges['face_edges'].append({
             #     'edge': edge,
             #     'edge_type': edge_type
@@ -401,7 +401,7 @@ class CAECellNetwork(CellNetwork):
 
         return face_and_edges
 
-    def select_face_neighbors(self, cell_network, face_key):
+    def select_face_neighbors(self, face_key):
         """Select the face neighbors of a face in the cell.
         
         Parameters
@@ -414,23 +414,23 @@ class CAECellNetwork(CellNetwork):
         dict
             A dictionary of face neighbors.
         """
-        current_face, face_type = self.select_face_by_fkey(cell_network, face_key)
+        current_face, face_type = self.select_face_by_fkey(face_key)
         
         neighbor_face_types = []
         neighbors = []
 
         # Find all neighboring faces of the current_face through its edges
-        for edge in cell_network.face_edges(current_face):
-            edge_faces = cell_network.edge_faces(edge)
+        for edge in self.face_edges(current_face):
+            edge_faces = self.edge_faces(edge)
             for neighbor in edge_faces:
                 if neighbor != current_face: # and neighbor not in all_neighbors
                     neighbors.append(neighbor)
-                    face_type = cell_network.face_attribute(neighbor, 'face_type')
+                    face_type = self.face_attribute(neighbor, 'face_type')
                     neighbor_face_types.append((neighbor, face_type))
 
         return neighbors, neighbor_face_types
     
-    def get_shared_edge(self, cell_network, current_face, face_neighbors, edge_key):
+    def get_shared_edge(self, current_face, face_neighbors, edge_key):
         """Get the shared edge of two neighboring faces in the cell network.
 
         Parameters
@@ -446,20 +446,24 @@ class CAECellNetwork(CellNetwork):
             The key and edge type of the shared edge.
         """
 
-        for i, face in enumerate(face_neighbors): 
-            if i < edge_key: #if the face is before the current face
-                neighbor_face = face 
+        neighbor_face = None
 
-        neighbor_face_edges = cell_network.face_edges(neighbor_face)
-        current_face_edges = cell_network.face_edges(current_face)
+        # Iterate through all neighboring faces to find the one with the shared edge
+        for face in face_neighbors:
+            neighbor_face_edges = self.face_edges(face)
+            current_face_edges = self.face_edges(current_face)
 
-        for u, v in neighbor_face_edges:
-            if (u, v) in current_face_edges or (v, u) in current_face_edges:
-                shared_edge = (u, v)
+            for u, v in neighbor_face_edges:
+                if (u, v) in current_face_edges or (v, u) in current_face_edges:
+                    neighbor_face = face
+                    shared_edge = (u, v)
+                    edge_type = self.edge_attribute(shared_edge, 'edge_type')
+                    return shared_edge, edge_type
 
-                edge_type = cell_network.edge_attribute(shared_edge, 'edge_type')
+        if neighbor_face is None:
+            raise ValueError("No valid neighbor face found for the given edge_key.")
 
-        return shared_edge, edge_type
+        raise ValueError("No shared edge found between the current face and its neighbor.")
 
 
     def outer_wall_attributes(self, cell_network, window_curve=None):
@@ -479,7 +483,7 @@ class CAECellNetwork(CellNetwork):
 
         pass
 
-    def generate_assembly_data(self, input_data, course_height, input_type):
+    def generate_assembly_data(self, mesh, course_height, input_type):
 
         """Calculate the properties of the wall faces in the cell network or COMPAS mesh.
 
@@ -490,7 +494,7 @@ class CAECellNetwork(CellNetwork):
         course_height : float
             The height of the course.
         input_type : str, optional
-            The type of input data, either 'cell_network' or 'mesh'. Default is 'cell_network'.
+            The type of input data, either 'reference_model' or 'mesh'.
         
         Returns
         -------
@@ -498,83 +502,83 @@ class CAECellNetwork(CellNetwork):
             A dictionary of wall face edges.
         """
 
-        if input_type == 'cell_network':
-            face = input_data.current_face
-            face_normal = vector_to_rhino(input_data.face_normal(face))
-            face_edges_data = self.select_face_and_get_adjacent_edges(input_data, face)
+        if input_type == 'reference_model':
+            face = self.current_face
+            face_normal = vector_to_rhino(self.face_normal(face))
+            face_edges_data = self.select_face_and_get_adjacent_edges(face)
             
             vertical_edges = [edge['edge'] for edge in face_edges_data['vertical_edges']]
-            edge_height = abs(input_data.edge_length(vertical_edges[0]))
+            edge_height = abs(self.edge_length(vertical_edges[0]))
 
             start_edge = vertical_edges[-1]
             end_edge = vertical_edges[0]
-            start_edge_type = input_data.edge_attribute(start_edge, 'edge_type')
-            end_edge_type = input_data.edge_attribute(end_edge, 'edge_type')
+            start_edge_type = self.edge_attribute(start_edge, 'edge_type')
+            end_edge_type = self.edge_attribute(end_edge, 'edge_type')
 
             horizontal_edges = [edge['edge'] for edge in face_edges_data['horizontal_edges']]
-            edge_length = abs(input_data.edge_length(horizontal_edges[0]))
+            edge_length = abs(self.edge_length(horizontal_edges[0]))
 
-            horizontal_edge_vector = input_data.edge_vector(horizontal_edges[0])
+            horizontal_edge_vector = self.edge_vector(horizontal_edges[0])
             horizontal_edge_vector.unitize()
 
             direction_vector = vector_to_rhino(horizontal_edge_vector)
 
-            curve_start_point = input_data.edge_start(horizontal_edges[0])
-            curve_end_point = input_data.edge_end(horizontal_edges[0])
+            curve_start_point = self.edge_start(horizontal_edges[0])
+            curve_end_point = self.edge_end(horizontal_edges[0])
 
         elif input_type == 'mesh':
             face = 0
-            face_normal = vector_to_rhino(input_data.face_normal(face))
-            face_edges = input_data.face_halfedges(face)
+            face_normal = vector_to_rhino(mesh.face_normal(face))
+            face_edges = mesh.face_halfedges(face)
 
-            vertical_edges = [edge for edge in face_edges if abs(input_data.edge_vector(edge)[2]) > 0]
-            edge_height = abs(input_data.edge_length(vertical_edges[0]))
+            vertical_edges = [edge for edge in face_edges if abs(mesh.edge_vector(edge)[2]) > 0]
+            edge_height = abs(mesh.edge_length(vertical_edges[0]))
 
             start_edge = vertical_edges[-1]
             end_edge = vertical_edges[0]
 
             # Set edge_type to "nothing attaching"
-            input_data.edge_attribute(start_edge, 'edge_type', 'nothing attaching')
-            input_data.edge_attribute(end_edge, 'edge_type', 'nothing attaching')
+            mesh.edge_attribute(start_edge, 'edge_type', 'nothing attaching')
+            mesh.edge_attribute(end_edge, 'edge_type', 'nothing attaching')
 
-            start_edge_type = input_data.edge_attribute(start_edge, 'edge_type')
-            end_edge_type = input_data.edge_attribute(end_edge, 'edge_type')
+            start_edge_type = mesh.edge_attribute(start_edge, 'edge_type')
+            end_edge_type = mesh.edge_attribute(end_edge, 'edge_type')
 
             # Set face_type to "outer wall"
-            input_data.face_attribute(face, 'face_type', 'outer wall')
+            mesh.face_attribute(face, 'face_type', 'outer wall')
 
-            horizontal_edges = [edge for edge in face_edges if abs(input_data.edge_vector(edge)[2]) == 0]
-            edge_length = abs(input_data.edge_length(horizontal_edges[0]))
+            horizontal_edges = [edge for edge in face_edges if abs(mesh.edge_vector(edge)[2]) == 0]
+            edge_length = abs(mesh.edge_length(horizontal_edges[0]))
 
-            horizontal_edge_vector = input_data.edge_vector(horizontal_edges[0])
+            horizontal_edge_vector = mesh.edge_vector(horizontal_edges[0])
             horizontal_edge_vector.unitize()
 
             direction_vector = vector_to_rhino(horizontal_edge_vector)
 
-            curve_start_point = input_data.vertex_coordinates(horizontal_edges[0][0])
-            curve_end_point = input_data.vertex_coordinates(horizontal_edges[0][1])
+            curve_start_point = mesh.vertex_coordinates(horizontal_edges[0][0])
+            curve_end_point = mesh.vertex_coordinates(horizontal_edges[0][1])
 
         else:
-            raise ValueError("Invalid input_type. Must be 'cell_network' or 'mesh'.")
+            raise ValueError("Invalid input_type. Must be 'reference_model' or 'mesh'.")
 
         num_courses = abs(edge_height / course_height)
 
-        if input_type == 'cell_network':
-            input_data.face_attribute(face, 'start_edge', start_edge)
-            input_data.face_attribute(face, 'start_edge_type', start_edge_type)
-            input_data.face_attribute(face, 'end_edge', end_edge)
-            input_data.face_attribute(face, 'end_edge_type', end_edge_type)
-            input_data.face_attribute(face, 'direction_vector', direction_vector)
+        if input_type == 'reference_model':
+            self.face_attribute(face, 'start_edge', start_edge)
+            self.face_attribute(face, 'start_edge_type', start_edge_type)
+            self.face_attribute(face, 'end_edge', end_edge)
+            self.face_attribute(face, 'end_edge_type', end_edge_type)
+            self.face_attribute(face, 'direction_vector', direction_vector)
         elif input_type == 'mesh':
-            input_data.face_attribute(face, 'start_edge', start_edge)
-            input_data.face_attribute(face, 'start_edge_type', start_edge_type)
-            input_data.face_attribute(face, 'end_edge', end_edge)
-            input_data.face_attribute(face, 'end_edge_type', end_edge_type)
-            input_data.face_attribute(face, 'direction_vector', direction_vector)
+            mesh.face_attribute(face, 'start_edge', start_edge)
+            mesh.face_attribute(face, 'start_edge_type', start_edge_type)
+            mesh.face_attribute(face, 'end_edge', end_edge)
+            mesh.face_attribute(face, 'end_edge_type', end_edge_type)
+            mesh.face_attribute(face, 'direction_vector', direction_vector)
 
         return {
             'face': face,
-            'face_type': input_data.face_attribute(face, 'face_type'),
+            'face_type': self.face_attribute(face, 'face_type'),
             'start_edge': start_edge,
             'start_edge_type': start_edge_type,
             'end_edge': end_edge,
