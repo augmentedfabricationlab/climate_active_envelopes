@@ -39,7 +39,7 @@ Execute the commands below in Anaconda Prompt:
 
     (cae) cd .rhinocode\py39-rh8
     
-    It is good practice to ensure that you are using the latest version of pip. To update pip, run the following command:
+It is good practice to ensure that you are using the latest version of pip. To update pip, run the following command:
 
     (cae) python.exe -m pip install --upgrade pip
     
