@@ -52,13 +52,13 @@ Execute the commands below in Anaconda Prompt:
 
 * Create a workspace directory: C:\Users\YOUR_USERNAME\workspace
   
-Open Github Desktop and clone
+Open Github Desktop and clone the following repositories into you workspace folder:
 
-* [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes) into you workspace folder 
-* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model) into you workspace folder.
-* [mobile_robot_control](https://github.com/augmentedfabricationlab/mobile_robot_control) into you workspace folder.
-* [ur_fabrication_control](https://github.com/augmentedfabricationlab/ur_fabrication_control) into you workspace folder.
-* [fabrication_manager](https://github.com/augmentedfabricationlab/fabrication_manager) into you workspace folder.
+* [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes), 
+* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model),
+* [mobile_robot_control](https://github.com/augmentedfabricationlab/mobile_robot_control), 
+* [ur_fabrication_control](https://github.com/augmentedfabricationlab/ur_fabrication_control), 
+* [fabrication_manager](https://github.com/augmentedfabricationlab/fabrication_manager). 
 
 SWITCH TO compas2 BRANCH IN MOBILE_ROBOT_CONTROL AND UR_FABRICATION_CONTROL!!!!
 
