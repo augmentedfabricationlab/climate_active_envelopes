@@ -404,10 +404,10 @@ class CAEAssembly(Assembly):
         num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
 
         ornament = "cross"  # Or "straight", "diamond"
+
         if start_edge_type == "corner":
-            self.generate_corner_flemish_bond(
+            self.generate_corner_vertical_bond(
                 initial_brick_position=initial_brick_position,
-                bricks_per_course=num_bricks1 ,
                 course_is_odd=course_is_odd,
                 direction_vector=direction_vector,
                 brick_spacing=brick_spacing,
@@ -416,9 +416,8 @@ class CAEAssembly(Assembly):
             )
 
         elif end_edge_type == "corner":
-            self.generate_corner_flemish_bond(
+            self.generate_corner_vertical_bond(
                 initial_brick_position=initial_brick_position,
-                bricks_per_course=num_bricks1 ,
                 course_is_odd=course_is_odd,
                 direction_vector=direction_vector,
                 brick_spacing=brick_spacing,
@@ -464,13 +463,13 @@ class CAEAssembly(Assembly):
                 brick_frame= brick_frame.transformed(T1)
 
                 # Add the brick
-                self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
+                #self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
 
                 # Double-layer (insulated)
                 if wall_system == "double_layer":
                     T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
                     insulated_frame = brick_frame.transformed(T1)
-                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+                    #self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
             # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
             num_bricks2 = math.floor(line_length / (brick_length + brick_spacing))
@@ -497,7 +496,7 @@ class CAEAssembly(Assembly):
 
                 # Add insulated brick if double layer
                 if wall_system == "double_layer":
-                    self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
+                    pass#self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
 
         # -------------------------
         # EVEN COURSE: ONE LOOP
@@ -545,7 +544,7 @@ class CAEAssembly(Assembly):
                     transform_type = "fixed"
 
                 # Add the brick
-                self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
+                #self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
             
             num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
 
@@ -567,25 +566,140 @@ class CAEAssembly(Assembly):
                 
                     T2 = Translation.from_vector(brick_frame.yaxis * ( ((brick_width/2)+brick_width/4) + brick_spacing - ((brick_width-(2*(brick_length)))/4)))
                     insulated_frame = brick_frame.transformed(T2)
-                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+                    #self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
                     T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
                     insulated_frame = insulated_frame .transformed(T3)
-                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-
-
+                    #self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
     def generate_corner_vertical_bond(self, 
-                                initial_brick_position,
-                                bricks_per_course,
-                                course_is_odd,
-                                direction_vector,
-                                brick_spacing,
-                                start_edge_type,
-                                end_edge_type,
-                                ):
-        brick_length, _, brick_width, brick_length_h = self.get_brick_dimensions()
+                                    initial_brick_position,
+                                    course_is_odd,
+                                    direction_vector,
+                                    brick_spacing,
+                                    start_edge_type,
+                                    end_edge_type):
+        """
+        Generates a corner course for a vertical bond.
+        
+        For odd courses (bricks laid long side out):
+        - The spacing step is: step_odd = brick_width + brick_spacing.
+        - When the corner condition applies, two bricks are generated as corner bricks.
+        
+        For even courses (bricks laid with short side out, rotated 90°):
+        - The spacing step is: step_even = brick_length + brick_spacing.
+        - In a corner region the sequence is: [full, half, full, full] bricks.
+        
+        Note: In these formulas, brick_width is actually the brick’s long side,
+            and brick_length is the brick’s short side.
+        """
+        # Retrieve brick dimensions.
+        brick_length, _, brick_width, _ = self.get_brick_dimensions()  # brick_length: short side; brick_width: long side.
         brick_full = self.brick_params["brick_full"]
         center_brick_frame = brick_full.frame
+
+        if course_is_odd:
+            bricks_per_course = 2
+           
+            for brick in range(bricks_per_course):
+                T = direction_vector * (brick * (brick_width + brick_spacing))
+                brick_position = initial_brick_position + T
+
+                # Create brick frame
+                if direction_vector[1] in [-1, 1]:
+                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
+                else:
+                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
+                
+                T1 = Translation.from_vector(-1* brick_frame.yaxis * (( (brick_width - brick_length) / 2)))
+                brick_frame= brick_frame.transformed(T1)
+
+                self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
+
+            # Double-layer (insulated)
+        else:
+                    # Bricks laid short side out (rotated 90 degrees)
+            bricks_per_course = 4
+            # Shift the starting point to align to the middle of the long facing brick
+            adjusted_initial_position = initial_brick_position 
+
+            for brick in range(bricks_per_course):
+                if brick == 0:
+                    T = direction_vector * (brick * (brick_length + (brick_spacing/2)+ ((brick_width - (2*brick_length))/2)))
+                    brick_position = adjusted_initial_position + T
+
+                    # Create base brick frame
+                    if direction_vector[1] in [-1, 1]:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
+                    else:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
+
+                    # Rotate 90 degrees
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                    rotated_frame = brick_frame.transformed(R)
+
+                    # Translate to align correctly
+                    T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length) / 2))
+                    brick_frame_final = rotated_frame.transformed(T1)
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
+
+
+
+                if brick == 1:
+                    T = direction_vector * (brick * (brick_length/2 + (brick_spacing/2)+ ((brick_width - (brick_length))/2)))
+                    brick_position = adjusted_initial_position + T
+
+                    # Create base brick frame
+                    if direction_vector[1] in [-1, 1]:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
+                    else:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
+
+                    # Rotate 90 degrees
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                    rotated_frame = brick_frame.transformed(R)
+
+                    # Translate to align correctly
+                    T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length/2) / 2))
+                    brick_frame_final = rotated_frame.transformed(T1)
+                    self.create_brick_and_add_to_assembly("half", "fixed", brick_frame_final)
+
+                elif brick == 2:
+                    T = direction_vector * (brick * (brick_length/2 + (brick_spacing/2)+ ((brick_width - (brick_length))/2)))
+                    brick_position = adjusted_initial_position + T
+
+                    # Create base brick frame
+                    if direction_vector[1] in [-1, 1]:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
+                    else:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
+
+                    # Rotate 90 degrees
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                    rotated_frame = brick_frame.transformed(R)
+
+                    # Translate to align correctly
+                    T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length)))
+                    brick_frame_final = rotated_frame.transformed(T1)
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
+                      
+                elif brick ==3:
+                    T = direction_vector * (brick * (brick_length + (brick_spacing/2)+ ((brick_width - (2*brick_length))/2)))
+                    brick_position = adjusted_initial_position + T
+
+                    # Create base brick frame
+                    if direction_vector[1] in [-1, 1]:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
+                    else:
+                        brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
+
+                    # Rotate 90 degrees
+                    R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
+                    rotated_frame = brick_frame.transformed(R)
+
+                    # Translate to align correctly
+                    T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length)))
+                    brick_frame_final = rotated_frame.transformed(T1)
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
 
 
 
