@@ -445,11 +445,12 @@ class CAEAssembly(Assembly):
                     insulated_frame = brick_frame.transformed(T1)
                     self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
-            # LOOP 2: Bricks laid short side out (rotated 90 degrees)
+            # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
             num_bricks2 = math.floor(line_length / (brick_length + brick_spacing))
+            adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
 
             for brick in range(num_bricks2):
-                T = direction_vector * (brick * (brick_length + brick_spacing))
+                T = direction_vector * (brick * (brick_length + (brick_spacing/2)+ ((brick_width - (2*brick_length))/2)))
                 brick_position = initial_brick_position + T
 
                 # Create base brick frame
@@ -463,8 +464,9 @@ class CAEAssembly(Assembly):
                 rotated_frame = brick_frame.transformed(R)
 
                 # Translate to align correctly
-                T1 = Translation.from_vector(rotated_frame.xaxis * (2*(brick_length + brick_spacing)))
+                T1 = Translation.from_vector(rotated_frame.xaxis * ((2*(brick_length + brick_spacing))-(brick_width - (2*(brick_length)))))
                 brick_frame_final = rotated_frame.transformed(T1)
+              
 
                 # Add insulated brick if double layer
                 if wall_system == "double_layer":
@@ -478,7 +480,7 @@ class CAEAssembly(Assembly):
             num_bricks = math.floor(line_length / (brick_length + brick_spacing))
             num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
 
-            # 👉 Shift the starting point to align to the middle of the long facing brick
+            # Shift the starting point to align to the middle of the long facing brick
             adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
 
             for brick in range(num_bricks):
@@ -542,6 +544,18 @@ class CAEAssembly(Assembly):
                     T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
                     insulated_frame = insulated_frame .transformed(T3)
                     self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+
+
+    def generate_corner_vertical_bond(self, 
+                                initial_brick_position,
+                                bricks_per_course,
+                                course_is_odd,
+                                direction_vector,
+                                brick_spacing,
+                                start_edge_type,
+                                end_edge_type,
+                                ):
+                                pass
 
     def generate_flemish_bond(self,
                                 initial_brick_position,
