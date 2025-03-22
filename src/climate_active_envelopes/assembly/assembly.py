@@ -395,11 +395,38 @@ class CAEAssembly(Assembly):
         end_edge_type,
         j
     ):
+
+  
+
         brick_length, _, brick_width, _ = self.get_brick_dimensions()
         brick_full = self.brick_params["brick_full"]
         center_brick_frame = brick_full.frame
+        num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
 
         ornament = "cross"  # Or "straight", "diamond"
+        if start_edge_type == "corner":
+            self.generate_corner_flemish_bond(
+                initial_brick_position=initial_brick_position,
+                bricks_per_course=num_bricks1 ,
+                course_is_odd=course_is_odd,
+                direction_vector=direction_vector,
+                brick_spacing=brick_spacing,
+                start_edge_type=start_edge_type,
+                end_edge_type=end_edge_type                        
+            )
+
+        elif end_edge_type == "corner":
+            self.generate_corner_flemish_bond(
+                initial_brick_position=initial_brick_position,
+                bricks_per_course=num_bricks1 ,
+                course_is_odd=course_is_odd,
+                direction_vector=direction_vector,
+                brick_spacing=brick_spacing,
+                start_edge_type=start_edge_type,
+                end_edge_type=end_edge_type,
+        )
+
+
 
         # -------------------------
         # ODD COURSE: TWO LOOPS
@@ -476,6 +503,7 @@ class CAEAssembly(Assembly):
         # EVEN COURSE: ONE LOOP
         # -------------------------
         else:
+
             # Bricks laid short side out (rotated 90 degrees)
             num_bricks = math.floor(line_length / (brick_length + brick_spacing))
             num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
@@ -555,7 +583,11 @@ class CAEAssembly(Assembly):
                                 start_edge_type,
                                 end_edge_type,
                                 ):
-                                pass
+        brick_length, _, brick_width, brick_length_h = self.get_brick_dimensions()
+        brick_full = self.brick_params["brick_full"]
+        center_brick_frame = brick_full.frame
+
+
 
     def generate_flemish_bond(self,
                                 initial_brick_position,
