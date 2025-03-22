@@ -859,6 +859,8 @@ class CAEAssembly(Assembly):
                 translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                 T = R * Translation.from_vector(translation_vector)
             
+            else:
+                continue
             part.transform(T)
 
     def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
@@ -892,11 +894,11 @@ class CAEAssembly(Assembly):
         if attr_dict:
             for attr, value in attr_dict.items():
                 part.attributes[attr] = value
-                #self.graph.node_attribute(key, attr, value)
+                self.graph.node_attribute(key, attr, value)
 
         return key
     
-    def read_model_to_assembly(self, brick_list, brick_type):
+    def read_model_to_assembly(self, brick_list, brick_type, transform_type):
         """Read a model to an assembly.
 
         Parameters
@@ -905,7 +907,8 @@ class CAEAssembly(Assembly):
             List of bricks to add to the assembly.
         brick_type : str
             The type of brick to add to the assembly.
-        
+        transform_type : str, optional
+            Type of transformation to apply ("fixed", "translate", or "rotate"). 
         """
         for brick in brick_list:
 
@@ -926,7 +929,7 @@ class CAEAssembly(Assembly):
 
                 part.frame = frame
 
-            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type})
+            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
             z_value = frame.point.z
             self.graph.node_attribute(part_key, 'z', z_value)
 
