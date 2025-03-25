@@ -701,8 +701,6 @@ class CAEAssembly(Assembly):
                     brick_frame_final = rotated_frame.transformed(T1)
                     self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
 
-
-
     def generate_flemish_bond(self,
                                 initial_brick_position,
                                 bricks_per_course,
@@ -983,7 +981,7 @@ class CAEAssembly(Assembly):
 
         return total_length
 
-    def apply_gradient(self, values, keys, transform_type):
+    def apply_gradient(self, values, points, keys, transform_type, rotation_direction):
         """
         Apply a gradient transformation to the parts.
 
@@ -997,30 +995,35 @@ class CAEAssembly(Assembly):
             Type of transformation to apply ("translate" or "rotate"). 
         """
         
-        sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
-        sorted_keys, sorted_values = zip(*sorted_keys_values)
-
-        for i, key in enumerate(keys):
+        # nearest neighbor search
+        tree = cKDTree(points)
+        
+        for key in keys:
             part = self.part(key)
-            if i < len(sorted_values):
-                translation_factor = sorted_values[i] * -0.08  # factor for translation
-                rotation_factor = sorted_values[i] * -0.4     # factor for rotation
-            else:
-                translation_factor = 0  # Default value if sorted_values list is shorter than sorted_keys list
-                rotation_factor = 0  # Default value for rotation factor
+            part_position = part.frame.point  
+            
+            # closest point and corresponding value
+            distance, index = tree.query(part_position)
+            value = values[index]
+            
+            translation_factor = value * -0.08  # factor for translation
+            rotation_factor = value * -0.1     # factor for rotation
 
             if transform_type == "translate":
                 translation_vector = part.frame.xaxis * translation_factor
                 T = Translation.from_vector(translation_vector)
-               
+            
             elif transform_type == "rotate":
                 center_brick_frame = part.frame
+                if rotation_direction == "left":
+                    rotation_factor = -rotation_factor
                 R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
                 translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                 T = R * Translation.from_vector(translation_vector)
             
             else:
                 continue
+            
             part.transform(T)
 
     def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
