@@ -21,8 +21,9 @@
 
 ## Getting Started
 
-* After installing Rhino 8, open Rhino and run **ScriptEditor** on the Rhino command line to **initialize Python**.
-* Execute the commands below in Anaconda Prompt:
+After installing Rhino 8, open Rhino and run **ScriptEditor** on the Rhino command line to **initialize Python**.
+
+Execute the commands below in Anaconda Prompt:
 
 #### Install dependencies
 
