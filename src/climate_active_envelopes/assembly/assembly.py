@@ -8,14 +8,13 @@ from compas.datastructures import AssemblyError
 from compas.geometry import Frame, Translation, Rotation, Transformation, Vector, Point, normalize_vector
 from compas_rhino.conversions import plane_to_compas_frame, point_to_compas, mesh_to_rhino, point_to_rhino, vector_to_rhino
 
-from numpy import array
-from numpy import float64
-from scipy.linalg import solve
+
 from scipy.spatial import cKDTree
 from compas.geometry import Polygon
 from shapely.geometry import Polygon as ShapelyPolygon
 
 import math as m
+import numpy as np
 
 
 from compas.geometry import Frame
@@ -981,7 +980,7 @@ class CAEAssembly(Assembly):
 
         return total_length
 
-    def apply_gradient(self, values, points, keys, transform_type, rotation_direction):
+    def apply_gradient(self, values, points, keys, transform_type, rotation_direction, nrbh_size):
         """
         Apply a gradient transformation to the parts.
 
@@ -994,17 +993,22 @@ class CAEAssembly(Assembly):
         transform_type : str, optional
             Type of transformation to apply ("translate" or "rotate"). 
         """
-        
-        # nearest neighbor search
+
+        #nearest neighbor search
         tree = cKDTree(points)
         
         for key in keys:
             part = self.part(key)
-            part_position = part.frame.point  
+            part_position = part.frame.point 
             
-            # closest point and corresponding value
-            distance, index = tree.query(part_position)
-            value = values[index]
+            # Find the k nearest neighbors and their corresponding values
+            distances, indices = tree.query(part_position, k = nrbh_size)
+            neighbor_values = np.array([values[i] for i in indices])
+            
+            # Compute the weighted average of the nearest neighbors
+            weights = 1 / (distances + 1e-10)  # Add a small value to avoid division by zero
+            weights /= weights.sum()
+            value = np.dot(weights, neighbor_values)
             
             translation_factor = value * -0.08  # factor for translation
             rotation_factor = value * -0.1     # factor for rotation
@@ -1017,14 +1021,49 @@ class CAEAssembly(Assembly):
                 center_brick_frame = part.frame
                 if rotation_direction == "left":
                     rotation_factor = -rotation_factor
-                R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-                translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
+                    R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
+                    translation_vector = center_brick_frame.yaxis * (-(0.1 * rotation_factor))
+                else:
+                    R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
+                    translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
                 T = R * Translation.from_vector(translation_vector)
             
             else:
                 continue
             
             part.transform(T)
+
+
+        # # nearest neighbor search
+        # tree = cKDTree(points)
+        
+        # for key in keys:
+        #     part = self.part(key)
+        #     part_position = part.frame.point  
+            
+        #     # closest point and corresponding value
+        #     distance, index = tree.query(part_position)
+        #     value = values[index]
+            
+        #     translation_factor = value * -0.08  # factor for translation
+        #     rotation_factor = value * -0.1     # factor for rotation
+
+        #     if transform_type == "translate":
+        #         translation_vector = part.frame.xaxis * translation_factor
+        #         T = Translation.from_vector(translation_vector)
+            
+        #     elif transform_type == "rotate":
+        #         center_brick_frame = part.frame
+        #         if rotation_direction == "left":
+        #             rotation_factor = -rotation_factor
+        #         R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
+        #         translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
+        #         T = R * Translation.from_vector(translation_vector)
+            
+        #     else:
+        #         continue
+            
+        #     part.transform(T)
 
     def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
         """Add a part to the assembly.
@@ -1061,7 +1100,7 @@ class CAEAssembly(Assembly):
 
         return key
     
-    def read_model_to_assembly(self, brick_list, brick_type, transform_type):
+    def read_model_to_assembly(self, brick_list, brick_type, transform_type, use_for_interfaces=True):
         """Read a model to an assembly.
 
         Parameters
@@ -1092,7 +1131,7 @@ class CAEAssembly(Assembly):
 
                 part.frame = frame
 
-            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
+            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type, "transform_type": transform_type, "use_for_interfaces": use_for_interfaces})
             z_value = frame.point.z
             self.graph.node_attribute(part_key, 'z', z_value)
 
@@ -1149,6 +1188,8 @@ class CAEAssembly(Assembly):
         sorted_parts = [part for course in courses for part in course]
         polygons = {}
         for part in sorted_parts:
+            if not self.graph.node_attribute(part, 'use_for_interfaces'):
+                continue
             frame_point = self.graph.node_attributes(part, 'xyz')
             part = self.part(part)
             for face in part.mesh.faces():
@@ -1169,8 +1210,12 @@ class CAEAssembly(Assembly):
             current_course = courses[i]
             next_course = courses[i + 1]
             for part in current_course:
+                if not self.graph.node_attribute(part, 'use_for_interfaces'):
+                    continue
                 part_polygon = polygons[part]
                 for neighbor in next_course:
+                    if not self.graph.node_attribute(neighbor, 'use_for_interfaces'):
+                        continue
                     neighbor_polygon = polygons[neighbor]
                     # Convert compas polygons to shapely polygons
                     shapely_part_polygon = ShapelyPolygon([(point.x, point.y) for point in part_polygon.points])
