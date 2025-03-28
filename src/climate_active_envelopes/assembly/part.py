@@ -44,6 +44,30 @@ class CAEPart(Part):
     def __init__(self, name=None, frame=None, **kwargs):
         super(CAEPart, self).__init__()
 
+
+    @property
+    def bottom(self):
+        """Identify the *bottom* face of the part's mesh.
+
+        Returns
+        -------
+        int
+            The identifier of the face.
+
+        Notes
+        -----
+        The face with the lowest centroid is considered the *bottom* face.
+        """
+        mesh = self.attributes['mesh']
+
+        # Compute the centroids of all faces
+        fkey_centroid = {fkey: mesh.face_center(fkey) for fkey in mesh.faces()}
+
+        # Find the face with the lowest z-coordinate
+        fkey, _ = sorted(fkey_centroid.items(), key=lambda x: x[1][2])[0]
+        return fkey
+
+
     @property
     def gripping_frame(self):
         """Returns the gripping frame of the part, if available.
@@ -215,13 +239,14 @@ class CAEPart(Part):
         :class:`Part`
             New instance of part.
         """
-        t_frame = Frame.worldXY()
+        #t_frame = Frame.worldXY()
         frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
         part = cls(name=name, frame=frame)
 
-        T = Transformation.from_frame_to_frame(part.frame, t_frame)
-        mesh_transformed = mesh.transformed(T)
-        frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
-        part.frame = t_frame
+        #T = Transformation.from_frame_to_frame(part.frame, t_frame)
+        #mesh_transformed = mesh.transformed(T)
+        #frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
+        #part.frame = t_frame
+        part.frame = frame
         part.attributes.update({'mesh':mesh})
         return part

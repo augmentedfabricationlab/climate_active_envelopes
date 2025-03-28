@@ -1100,7 +1100,7 @@ class CAEAssembly(Assembly):
 
         return key
     
-    def read_model_to_assembly(self, brick_list, brick_type, transform_type, use_for_interfaces=True):
+    def read_model_to_assembly(self, brick_list, brick_type, transform_type, skip_intersections=False):
         """Read a model to an assembly.
 
         Parameters
@@ -1131,7 +1131,9 @@ class CAEAssembly(Assembly):
 
                 part.frame = frame
 
-            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type, "transform_type": transform_type, "use_for_interfaces": use_for_interfaces})
+            part_key = self.add_part_from_model(part, attr_dict={"brick_type": brick_type, 
+                                                                 "transform_type": transform_type,
+                                                                 "skip_intersections": skip_intersections})
             z_value = frame.point.z
             self.graph.node_attribute(part_key, 'z', z_value)
 
@@ -1187,39 +1189,77 @@ class CAEAssembly(Assembly):
         courses = self.assembly_courses()
         sorted_parts = [part for course in courses for part in course]
         polygons = {}
+        
         for part in sorted_parts:
-            if not self.graph.node_attribute(part, 'use_for_interfaces'):
+            # Skip parts tagged with "skip_intersections"
+            if self.graph.node_attribute(part, 'skip_intersections'):
                 continue
-            frame_point = self.graph.node_attributes(part, 'xyz')
+
+            # Identify the bottom face of the part
             part = self.part(part)
-            for face in part.mesh.faces():
-                face_vertices = part.mesh.face_vertices(face)
-                face_coords = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
-                if all(coord[2] == frame_point[2] for coord in face_coords):
-                    target_face = face
-            face_vertices = part.mesh.face_vertices(target_face)
-            vertices = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+            mesh = part.mesh
+            fkey_centroid = {fkey: mesh.face_center(fkey) for fkey in mesh.faces()}
+            bottom_face = min(fkey_centroid.items(), key=lambda x: x[1][2])[0]
+
+            # Get the vertices of the bottom face
+            face_vertices = mesh.face_vertices(bottom_face)
+            vertices = [mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+
+            # Project the vertices to 2D (x, y)
             projected_vertices = [(x, y) for x, y, z in vertices]
+
+            # Create a 2D polygon from the projected vertices
             polygon = Polygon(projected_vertices)
             polygons[part.key] = polygon
+
         return polygons
+
+
+        # for part in sorted_parts:
+        #     frame_point = self.graph.node_attributes(part, 'xyz')
+        #     part = self.part(part)
+        #     for face in part.mesh.faces():
+        #         face_vertices = part.mesh.face_vertices(face)
+        #         face_coords = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+        #         if all(coord[2] == frame_point[2] for coord in face_coords):
+        #             target_face = face
+        #     face_vertices = part.mesh.face_vertices(target_face)
+        #     vertices = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
+        #     projected_vertices = [(x, y) for x, y, z in vertices]
+        #     polygon = Polygon(projected_vertices)
+        #     polygons[part.key] = polygon
+        # return polygons
 
     def compute_polygon_intersections(self, polygons, courses):
         intersections = {}
         for i in range(len(courses) - 1):
             current_course = courses[i]
             next_course = courses[i + 1]
-            for part in current_course:
-                if not self.graph.node_attribute(part, 'use_for_interfaces'):
+
+            # Filter out parts with skip_intersections=True in the current course
+            current_course_parts = [
+                part for part in current_course if not self.graph.node_attribute(part, 'skip_intersections')
+            ]
+
+            # Filter out parts with skip_intersections=True in the next course
+            next_course_parts = [
+                part for part in next_course if not self.graph.node_attribute(part, 'skip_intersections')
+            ]
+
+            for part in current_course_parts:
+                part_polygon = polygons.get(part)
+                if not part_polygon:
                     continue
-                part_polygon = polygons[part]
-                for neighbor in next_course:
-                    if not self.graph.node_attribute(neighbor, 'use_for_interfaces'):
+
+                for neighbor in next_course_parts:
+                    neighbor_polygon = polygons.get(neighbor)
+                    if not neighbor_polygon:
                         continue
-                    neighbor_polygon = polygons[neighbor]
+
                     # Convert compas polygons to shapely polygons
                     shapely_part_polygon = ShapelyPolygon([(point.x, point.y) for point in part_polygon.points])
                     shapely_neighbor_polygon = ShapelyPolygon([(point.x, point.y) for point in neighbor_polygon.points])
+
                     # Compute intersection
                     intersection = shapely_part_polygon.intersection(shapely_neighbor_polygon)
                     if not intersection.is_empty:
@@ -1227,6 +1267,7 @@ class CAEAssembly(Assembly):
                         intersection_coords = list(intersection.exterior.coords)
                         intersection_points = [Point(x, y, part_polygon.points[0].z) for x, y in intersection_coords]
                         intersections[(part, neighbor)] = Polygon(intersection_points)
+
         return intersections
 
     # def transform_intersections_to_original_course(intersections, courses):
@@ -1269,18 +1310,32 @@ class CAEAssembly(Assembly):
 
     def set_interface_points(self):
         for key in self.graph.nodes():
+            # Skip parts tagged with "skip_intersections"
+            if self.graph.node_attribute(key, 'skip_intersections'):
+                continue
+
             part = self.part(key)
             frame_point = self.graph.node_attributes(key, 'xyz')
-            part = self.part(key)
+            target_face = None
+
+            # Find the face that matches the condition
             for face in part.mesh.faces():
                 face_vertices = part.mesh.face_vertices(face)
                 face_coords = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
                 if all(coord[2] == frame_point[2] for coord in face_coords):
                     target_face = face
+                    break
+
+            # If no valid face is found, skip this part
+            if target_face is None:
+                continue
+
+            # Get the vertices of the target face
             face_vertices = part.mesh.face_vertices(target_face)
             vertices = [part.mesh.vertex_coordinates(vkey) for vkey in face_vertices]
             projected_vertices = [(x, y) for x, y, z in vertices]
-            polygon = Polygon(projected_vertices)
+
+            # Store the interface points as a node attribute
             self.graph.node_attribute(key, 'interface_points', projected_vertices)
 
     def assembly_building_sequence(self, key):
