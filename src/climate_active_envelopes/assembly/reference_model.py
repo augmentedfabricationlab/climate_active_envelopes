@@ -446,24 +446,20 @@ class CAEReferenceModel(CellNetwork):
             The key and edge type of the shared edge.
         """
 
-        neighbor_face = None
+        for i, face in enumerate(face_neighbors): 
+            if i < edge_key: #if the face is before the current face
+                neighbor_face = face 
 
-        # Iterate through all neighboring faces to find the one with the shared edge
-        for face in face_neighbors:
-            neighbor_face_edges = self.face_edges(face)
-            current_face_edges = self.face_edges(current_face)
+        neighbor_face_edges = self.face_edges(neighbor_face)
+        current_face_edges = self.face_edges(current_face)
 
-            for u, v in neighbor_face_edges:
-                if (u, v) in current_face_edges or (v, u) in current_face_edges:
-                    neighbor_face = face
-                    shared_edge = (u, v)
-                    edge_type = self.edge_attribute(shared_edge, 'edge_type')
-                    return shared_edge, edge_type
+        for u, v in neighbor_face_edges:
+            if (u, v) in current_face_edges or (v, u) in current_face_edges:
+                shared_edge = (u, v)
 
-        if neighbor_face is None:
-            raise ValueError("No valid neighbor face found for the given edge_key.")
+                edge_type = self.edge_attribute(shared_edge, 'edge_type')
 
-        raise ValueError("No shared edge found between the current face and its neighbor.")
+        return shared_edge, edge_type
 
 
     def outer_wall_attributes(self, cell_network, window_curve=None):
