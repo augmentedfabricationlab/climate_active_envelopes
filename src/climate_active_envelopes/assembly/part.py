@@ -2,9 +2,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-from compas.geometry import Frame
-from compas.geometry import Box
-from compas.geometry import Transformation
+from compas.geometry import Frame, Box, Translation, Transformation, bounding_box
+
 from compas.datastructures import Mesh
 from compas.datastructures import Datastructure
 
@@ -13,6 +12,7 @@ from compas.geometry import normalize_vector
 from compas.geometry import centroid_polyhedron
 from compas.geometry import volume_polyhedron
 
+from compas_rhino.geometry import RhinoBrep
 
 from assembly_information_model import Part
 
@@ -67,6 +67,39 @@ class CAEPart(Part):
         fkey, _ = sorted(fkey_centroid.items(), key=lambda x: x[1][2])[0]
         return fkey
 
+    @property
+    def top(self):
+        """Identify the *top* face of the part's mesh.
+
+        Returns
+        -------
+        int
+            The identifier of the face.
+
+        Notes
+        -----
+        The face with the highest centroid is considered the *top* face.
+        """
+        mesh = self.attributes['mesh']
+
+        fkey_centroid = {fkey: mesh.face_center(fkey) for fkey in mesh.faces()}
+        fkey, _ = sorted(fkey_centroid.items(), key=lambda x: x[1][2])[-1]
+        return fkey
+
+    @property
+    def center(self):
+        """Compute the center of mass of the part's mesh..
+
+        Returns
+        -------
+        point
+            The center of mass of the part's mesh..
+        """
+        mesh = self.attributes['mesh']
+
+        vertices = [mesh.vertex_coordinates(key) for key in mesh.vertices()]
+        faces = [mesh.face_vertices(fkey) for fkey in mesh.faces()]
+        return centroid_polyhedron((vertices, faces))
 
     @property
     def gripping_frame(self):
@@ -205,22 +238,32 @@ class CAEPart(Part):
         -------
         :class:`Part`
             New instance of part.
-        """
-        frame = Frame([0., 0., height/2], [1, 0, 0], [0, 1, 0])
+        """   
+
+        frame = Frame([0., 0., 0.], [1, 0, 0], [0, 1, 0])
+
         part = cls(name=name, frame=frame)
         part.length = length
         part.height = height
         part.width = width
+
         box = Box(length, width, height, frame)
+        part = cls.from_shape(box, name=name)
+
+        part.frame = Frame(part.center, [1, 0, 0], [0, 1, 0])
+
+        # Store the bottom face
+        bottom_face = part.bottom
+        part.attributes['bottom_face'] = bottom_face
+
+        top_face_center = part.attributes['mesh'].face_center(part.top)
+        part.gripping_frame = Frame(top_face_center, [-1, 0, 0], [0, 1, 0])
 
 
-        # part.mesh = Mesh.from_shape(box)
-        # part._source = box
-        # return part
+        part.attributes['name'] = name
 
-        part._source = box
-        return cls.from_shape(box, name=name)   
-    
+        return part
+
     @classmethod
     def from_mesh_and_frame(cls, mesh, name=None):
         """Construct an part from a mesh and frame.
@@ -239,14 +282,14 @@ class CAEPart(Part):
         :class:`Part`
             New instance of part.
         """
-        #t_frame = Frame.worldXY()
-        frame = Frame(mesh.centroid(),[1, 0, 0], [0, 1, 0])
-        part = cls(name=name, frame=frame)
-
-        #T = Transformation.from_frame_to_frame(part.frame, t_frame)
-        #mesh_transformed = mesh.transformed(T)
-        #frame = Frame(mesh_transformed.centroid(),[1, 0, 0], [0, 1, 0])
-        #part.frame = t_frame
-        part.frame = frame
+        part = cls(name=name)
         part.attributes.update({'mesh':mesh})
+
+        frame = Frame(part.center, [1, 0, 0], [0, 1, 0])
+        part.frame = frame
+
+        top_face_center = mesh.face_center(part.top)
+        part.gripping_frame = Frame(top_face_center, [-1, 0, 0], [0, 1, 0])
+
         return part
+    
