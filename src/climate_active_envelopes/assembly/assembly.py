@@ -468,10 +468,10 @@ class CAEAssembly(Assembly):
                     transform_type = "fixed"
 
                 # Add the brick
-                if brick in range (0,1):
-                    pass
-                else:
-                    self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
+                # if brick in range (0,1):
+                #     pass
+                # else:
+                self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
             
             num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
 
@@ -494,17 +494,17 @@ class CAEAssembly(Assembly):
                     T2 = Translation.from_vector(brick_frame.yaxis * ( ((brick_width/2)+brick_width/4) + brick_spacing - ((brick_width-(2*(brick_length)))/4)))
                     T21 = Translation.from_vector(brick_frame.xaxis * (-1*(brick_width/2)))
                     insulated_frame = brick_frame.transformed(T2)
-                    if brick in range (0,2):
-                        pass
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+                    # if brick in range (0,2):
+                    #     pass
+                    # else:
+                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
                     T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
                     insulated_frame = insulated_frame .transformed(T3)
-                    if brick in range (0,2):
-                        pass
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+                     # if brick in range (0,2):
+                     #    pass
+                     # else:
+                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
 
         # -------------------------
@@ -546,14 +546,25 @@ class CAEAssembly(Assembly):
                 self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
 
                 # Double-layer (insulated)
-                if wall_system == "double_layer":
+                if wall_system == "single_layer":
                     T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
                     insulated_frame = brick_frame.transformed(T1)
-                    if brick in range (0,1):
-                        pass
+                     # if brick in range (0,1):
+                     #   pass
 
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
+                     # else:
+                    self.create_brick_and_add_to_assembly("full", "fixed", insulated_frame)
+
+
+                # Double-layer (insulated)
+                elif wall_system == "double_layer":
+                    T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
+                    insulated_frame = brick_frame.transformed(T1)
+                     # if brick in range (0,1):
+                     #   pass
+
+                     # else:
+                    self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
             # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
             num_bricks2 = math.floor(line_length / (brick_length + brick_spacing))
@@ -577,13 +588,13 @@ class CAEAssembly(Assembly):
                 T1 = Translation.from_vector(rotated_frame.xaxis * ((2*(brick_length + brick_spacing))-(brick_width - (2*(brick_length)))+brick_spacing))
                 brick_frame_final = rotated_frame.transformed(T1)
 
-                if brick in range(0,3):
-                    pass
-                else:
+                 #  if brick in range(0,3):
+                 #   pass
+                 # else:
 
-                    # Add insulated brick if double layer
-                    if wall_system == "double_layer":
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
+                # Add insulated brick if double layer
+                if wall_system == "double_layer":
+                    self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
 
 
     def generate_corner_vertical_bond(self, 
