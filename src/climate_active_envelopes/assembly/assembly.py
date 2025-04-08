@@ -382,18 +382,17 @@ class CAEAssembly(Assembly):
                     current_frame = current_frame.transformed(translation)
                     self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **brick_params)
 
-
     def generate_vertical_bond(
-    self,
-    initial_brick_position,
-    line_length,
-    course_is_odd,
-    direction_vector,
-    wall_system,
-    brick_spacing,
-    start_edge_type,
-    end_edge_type,
-    j):
+        self,
+        initial_brick_position,
+        line_length,
+        course_is_odd,
+        direction_vector,
+        wall_system,
+        brick_spacing,
+        start_edge_type,
+        end_edge_type,
+        j):
 
 
 
@@ -585,7 +584,6 @@ class CAEAssembly(Assembly):
                     if wall_system == "double_layer":
                         self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
 
-
     def generate_corner_vertical_bond(self, 
                                     initial_brick_position,
                                     course_is_odd,
@@ -715,7 +713,6 @@ class CAEAssembly(Assembly):
                     T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length)))
                     brick_frame_final = rotated_frame.transformed(T1)
                     self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
-
 
     def generate_flemish_bond(self,
                                 initial_brick_position,
@@ -1010,7 +1007,9 @@ class CAEAssembly(Assembly):
         transform_type : str, optional
             Type of transformation to apply ("translate" or "rotate"). 
         """
-
+        # sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
+        # sorted_keys, sorted_values = zip(*sorted_keys_values)
+        
         #nearest neighbor search
         tree = cKDTree(points)
         
@@ -1039,10 +1038,16 @@ class CAEAssembly(Assembly):
                 if rotation_direction == "left":
                     rotation_factor = -rotation_factor
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-                    translation_vector = center_brick_frame.yaxis * (-(0.1 * rotation_factor))
+                    translation_vector = center_brick_frame.yaxis * (-(0.09 * rotation_factor))
                 else:
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-                    translation_vector = center_brick_frame.yaxis * (0.1 * rotation_factor)
+                    translation_vector = center_brick_frame.yaxis * (0.09 * rotation_factor)
+                    x_translation_vector = center_brick_frame.xaxis * (-0.015 * rotation_factor) 
+                    translation_vector += x_translation_vector
+
+                if value < 0:
+                    translation_vector = -translation_vector
+                    
                 T = R * Translation.from_vector(translation_vector)
             
             else:
