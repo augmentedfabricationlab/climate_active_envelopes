@@ -385,18 +385,17 @@ class CAEAssembly(Assembly):
                     current_frame = current_frame.transformed(translation)
                     self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=current_frame, **brick_params)
 
-    def generate_vertical_bond(
-    self,
-    initial_brick_position,
-    line_length,
-    course_is_odd,
-    direction_vector,
-    wall_system,
-    brick_spacing,
-    start_edge_type,
-    end_edge_type,
-    j,
-    ornament):
+    def generate_vertical_bond(self,
+                                initial_brick_position,
+                                line_length,
+                                course_is_odd,
+                                direction_vector,
+                                wall_system,
+                                brick_spacing,
+                                start_edge_type,
+                                end_edge_type,
+                                j,
+                                ornament):
 
 
 
@@ -471,7 +470,7 @@ class CAEAssembly(Assembly):
                     transform_type = "fixed"
 
                 # Add the brick
-                if brick in range (0,3):
+                if brick in range (0,3) and start_edge_type == "corner" :
                     pass
                 else:
                     self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
@@ -497,14 +496,14 @@ class CAEAssembly(Assembly):
                     T2 = Translation.from_vector(brick_frame.yaxis * ( ((brick_width/2)+brick_width/4) + brick_spacing - ((brick_width-(2*(brick_length)))/4)))
                     #T21 = Translation.from_vector(brick_frame.xaxis * (-1*(brick_width/2)))
                     insulated_frame = brick_frame.transformed(T2)
-                    if brick in range (0,2):
+                    if brick in range (0,2) and start_edge_type == "corner":
                         pass
                     else:
                         self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
                     T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
                     insulated_frame = insulated_frame .transformed(T3)
-                    if brick in range (0,2):
+                    if brick in range (0,2) and start_edge_type == "corner":
                         pass
                     else:
                         self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
@@ -541,7 +540,7 @@ class CAEAssembly(Assembly):
                 brick_frame= brick_frame.transformed(T1)
 
                 # Add the brick
-                if brick in range (0,2):
+                if brick in range (0,2) and start_edge_type == "corner":
                     pass
                 else:
                     self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
@@ -551,7 +550,7 @@ class CAEAssembly(Assembly):
                 if wall_system == "single_layer":
                     T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
                     insulated_frame = brick_frame.transformed(T1)
-                    if brick in range (0,2):
+                    if brick in range (0,2) and start_edge_type == "corner":
                         pass
                     else:
                         self.create_brick_and_add_to_assembly("full", "fixed", insulated_frame)
@@ -560,7 +559,7 @@ class CAEAssembly(Assembly):
                 if wall_system == "double_layer":
                     T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
                     insulated_frame = brick_frame.transformed(T1)
-                    if brick in range (0,2):
+                    if brick in range (0,2) and start_edge_type == "corner":
                         pass
 
                     else:
@@ -585,10 +584,10 @@ class CAEAssembly(Assembly):
                 rotated_frame = brick_frame.transformed(R)
                 
                 # Translate to align correctly
-                T1 = Translation.from_vector(rotated_frame.xaxis * ((2*(brick_length + brick_spacing))-(brick_width - (2*(brick_length)))+brick_spacing))
+                T1 = Translation.from_vector(rotated_frame.xaxis * (((2*brick_length + brick_spacing)) - (2*(brick_width - (2*(brick_length)))/4)+ brick_spacing))
                 brick_frame_final = rotated_frame.transformed(T1)
 
-                if brick in range(0,3):
+                if brick in range(0,3) and start_edge_type == "corner":
                     pass
                 else:
                     # Add insulated brick if double layer
