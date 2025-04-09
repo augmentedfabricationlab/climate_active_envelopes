@@ -162,6 +162,7 @@ class CAEAssembly(Assembly):
     def generate_wall(self, 
                       cell_network,
                       bond_type, 
+                      ornament,
                       wall_system,  
                       brick_spacing, 
                       course_height, 
@@ -225,7 +226,8 @@ class CAEAssembly(Assembly):
                         brick_spacing=brick_spacing,
                         start_edge_type=start_edge_type,
                         end_edge_type=end_edge_type,
-                        j=j
+                        j=j,
+                        ornament = ornament
                         )
 
     def create_brick_and_add_to_assembly(self,
@@ -393,16 +395,17 @@ class CAEAssembly(Assembly):
     brick_spacing,
     start_edge_type,
     end_edge_type,
-    j):
+    j,
+    ornament):
 
 
 
         brick_length, _, brick_width, _ = self.get_brick_dimensions()
         brick_full = self.brick_params["brick_full"]
         center_brick_frame = brick_full.frame
-        num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
+        num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
 
-        ornament = "cross"  # Or "straight", "diamond"
+        ornament = ornament  # "cross" or "straight", "diamond"
         
 
         if start_edge_type == "corner":
@@ -428,8 +431,8 @@ class CAEAssembly(Assembly):
 
 
             # Bricks laid short side out (rotated 90 degrees)
-            num_bricks = math.floor(line_length / (brick_length + brick_spacing))
-            num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
+            num_bricks = math.ceil(line_length / (brick_length + brick_spacing))
+            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
 
             # Shift the starting point to align to the middle of the long facing brick
             adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
@@ -473,7 +476,7 @@ class CAEAssembly(Assembly):
                 else:
                     self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
             
-            num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
+            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
 
             for brick in range(num_bricks1):
                 T = direction_vector * (brick * (brick_width + brick_spacing))
@@ -512,7 +515,7 @@ class CAEAssembly(Assembly):
         # -------------------------
         if course_is_odd:
             # LOOP 1: Bricks laid long side out (normal orientation)
-            num_bricks1 = math.floor(line_length / (brick_width + brick_spacing))
+            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
 
             for brick in range(num_bricks1):
                 T = direction_vector * (brick * (brick_width + brick_spacing))
@@ -564,7 +567,7 @@ class CAEAssembly(Assembly):
                         self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
             # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
-            num_bricks2 = math.floor(line_length / (brick_length + brick_spacing))
+            num_bricks2 = math.ceil(line_length / (brick_length + brick_spacing))
             adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
 
             for brick in range(num_bricks2):
@@ -1050,6 +1053,7 @@ class CAEAssembly(Assembly):
             total_length = (bricks_per_course // 2) * (brick_length + brick_width + 2 * brick_spacing)
 
         return total_length
+
 
 
 
