@@ -526,14 +526,9 @@ class CAEAssembly(Assembly):
 
                 # Ornament logic
                 if ornament == "cross":
-                    if brick % 2 == 0 and j % 4 == 0:
-                        transform_type = "translate"
-                    elif brick % 2 != 0 and j % 4 != 0:
-                        transform_type = "translate"
-                    else:
-                        transform_type = "fixed"
+                    transform_type = "fixed"
                 elif ornament == "straight":
-                    transform_type = "translate" if brick % 2 == 0 else "fixed"
+                    transform_type = "fixed"
                 elif ornament == "diamond":
                     transform_type = "translate" if brick % 2 == 0 else "fixed"
                 else:
