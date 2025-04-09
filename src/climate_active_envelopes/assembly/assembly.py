@@ -641,6 +641,15 @@ class CAEAssembly(Assembly):
 
                 self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
 
+                if brick == 1:
+                    T2 = Translation.from_vector(brick_frame.yaxis * (( (brick_length + (brick_width - (2*brick_length))))))
+                    brick_frame= brick_frame.transformed(T2)
+
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
+
+
+
+
             bricks_per_course = 3
         
             for brick in range(bricks_per_course):
@@ -658,7 +667,7 @@ class CAEAssembly(Assembly):
                 T1 = Translation.from_vector(-1* brick_frame.yaxis * (( (brick_width - brick_length) / 2)))
                 brick_frame= brick_frame.transformed(T1)
                 if brick == 0:
-                    T2 = Translation.from_vector((brick_frame.yaxis * (((brick_length/3)*2)+2*brick_spacing)))
+                    T2 = Translation.from_vector((brick_frame.yaxis * ((((brick_length/3)*2)+2*brick_spacing) + 3*((brick_width - (2*brick_length)))/2)))
                     brick_frame = brick_frame.transformed(T2)
 
                     self.create_brick_and_add_to_assembly("half", "fixed", brick_frame) # adding the half brick for the corner
