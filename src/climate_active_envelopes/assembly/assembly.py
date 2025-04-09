@@ -25,6 +25,7 @@ from collections import deque
 
 from assembly_information_model import Assembly
 from .part import CAEPart as Part
+from scipy.spatial import cKDTree
 #from .reference_model import CAECellNetwork as CellNetwork
 
 
@@ -1055,7 +1056,9 @@ class CAEAssembly(Assembly):
 
         return total_length
 
-    def apply_gradient(self, values, points, keys, transform_type, rotation_direction, nrbh_size):
+
+
+    def apply_gradient(self, values, points, keys, transform_type, rotation_direction, nrbh_size, global_direction=np.array([0, 1, 0])):
         """
         Apply a gradient transformation to the parts.
 
@@ -1063,58 +1066,104 @@ class CAEAssembly(Assembly):
         ----------
         values : list
             List of values to determine the transformation.
+        points : list or array_like
+            3D points corresponding to the parts (used for nearest neighbor search).
         keys : list
             List of keys identifying the parts.
-        transform_type : str, optional
+        transform_type : str
             Type of transformation to apply ("translate" or "rotate"). 
+        rotation_direction : str
+            Direction for rotation ("left" or other).
+        nrbh_size : int
+            The number of nearest neighbors to consider.
+        global_direction : array_like, optional
+            A 3D vector representing the global reference for the gradient. 
+            Default is np.array([0, 1, 0]).
         """
-        # sorted_keys_values = sorted(zip(keys, values), key=lambda kv: kv[1])
-        # sorted_keys, sorted_values = zip(*sorted_keys_values)
-        
-        #nearest neighbor search
+
+        # Build a KDTree for fast nearest neighbor search.
         tree = cKDTree(points)
-        
+
+        # Normalize the global direction (using compas.geometry.normalize_vector or numpy)
+        global_direction = normalize_vector(global_direction)
+
         for key in keys:
             part = self.part(key)
-            part_position = part.frame.point 
-            
-            # Find the k nearest neighbors and their corresponding values
-            distances, indices = tree.query(part_position, k = nrbh_size)
+            part_position = part.frame.point  # Assumed to be a NumPy array
+
+            # Nearest neighbor search to grab associated values
+            distances, indices = tree.query(part_position, k=nrbh_size)
             neighbor_values = np.array([values[i] for i in indices])
-            
-            # Compute the weighted average of the nearest neighbors
-            weights = 1 / (distances + 1e-10)  # Add a small value to avoid division by zero
+            # Use inverse-distance weighting for interpolation
+            weights = 1 / (distances + 1e-10)
             weights /= weights.sum()
             value = np.dot(weights, neighbor_values)
-            
-            translation_factor = value * -0.08  # factor for translation
-            rotation_factor = value * -0.1     # factor for rotation
 
+            translation_factor = value * -0.08  # Factor for translation
+            rotation_factor = value * -0.1      # Factor for rotation
+
+            # --- Infer the brick's face orientation ---
+            # Try to get the box dimensions. If part.shape exists, it is assumed to be a Box.
+            try:
+                box = part.shape
+                xsize = box.xsize
+                ysize = box.ysize
+            except AttributeError:
+                # If shape or dimensions are missing, assume equal dimensions.
+                xsize, ysize = 1.0, 1.0
+
+            # Compute alignment of local axes with the global_direction.
+            # Convert axes to numpy arrays if needed.
+            local_xaxis = np.array(part.frame.xaxis)
+            local_yaxis = np.array(part.frame.yaxis)
+            dot_x = abs(np.dot(local_xaxis, global_direction))
+            dot_y = abs(np.dot(local_yaxis, global_direction))
+
+            # Decide which face is “front-facing.”
+            # If the part's smaller dimension is along an axis that better aligns with the
+            # global direction, consider that as the “shorter” face.
+            if xsize < ysize:
+                # xsize is the shorter dimension.
+                facing = "shorter" if dot_x >= dot_y else "longer"
+            else:
+                # ysize is the shorter dimension.
+                facing = "shorter" if dot_y >= dot_x else "longer"
+
+            # --- Apply transformation based on computed orientation ---
             if transform_type == "translate":
-                translation_vector = part.frame.xaxis * translation_factor
+                # As per your rule:
+                # if the brick is facing with its shorter edge, use the xaxis for translation,
+                # if facing with its longer edge, use the yaxis.
+                if facing == "shorter":
+                    translation_vector = local_yaxis * translation_factor
+                else:
+                    translation_vector = local_xaxis * translation_factor
+
                 T = Translation.from_vector(translation_vector)
-            
+
             elif transform_type == "rotate":
                 center_brick_frame = part.frame
                 if rotation_direction == "left":
                     rotation_factor = -rotation_factor
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-                    translation_vector = center_brick_frame.yaxis * (-(0.09 * rotation_factor))
+                    translation_vector = np.array(center_brick_frame.yaxis) * (-(0.09 * rotation_factor))
                 else:
                     R = Rotation.from_axis_and_angle(center_brick_frame.zaxis, rotation_factor, point=center_brick_frame.point)
-                    translation_vector = center_brick_frame.yaxis * (0.09 * rotation_factor)
-                    x_translation_vector = center_brick_frame.xaxis * (-0.015 * rotation_factor) 
+                    translation_vector = np.array(center_brick_frame.yaxis) * (0.09 * rotation_factor)
+                    x_translation_vector = np.array(center_brick_frame.xaxis) * (-0.015 * rotation_factor)
                     translation_vector += x_translation_vector
 
                 if value < 0:
                     translation_vector = -translation_vector
-                    
+
                 T = R * Translation.from_vector(translation_vector)
-            
+
             else:
                 continue
-            #print(f"Part: {key}, Value: {value}, Translation Factor: {translation_factor}, Rotation Factor: {rotation_factor}")
+
+            # Apply the transformation to the part.
             part.transform(T)
+
 
     def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
         """Add a part to the assembly.
