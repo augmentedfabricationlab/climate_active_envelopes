@@ -584,7 +584,7 @@ class CAEAssembly(Assembly):
                 rotated_frame = brick_frame.transformed(R)
                 
                 # Translate to align correctly
-                T1 = Translation.from_vector(rotated_frame.xaxis * (((2*brick_length + brick_spacing)) - (2*(brick_width - (2*(brick_length)))/4)+ brick_spacing))
+                T1 = Translation.from_vector(rotated_frame.xaxis * (((2*brick_length + brick_spacing)) + ((brick_width - (2*(brick_length))))))
                 brick_frame_final = rotated_frame.transformed(T1)
 
                 if brick in range(0,3) and start_edge_type == "corner":
@@ -665,7 +665,7 @@ class CAEAssembly(Assembly):
                 T1 = Translation.from_vector(-1* brick_frame.yaxis * (( (brick_width - brick_length) / 2)))
                 brick_frame= brick_frame.transformed(T1)
                 if brick == 0:
-                    T2 = Translation.from_vector((brick_frame.yaxis * ((((brick_length/3)*2)+2*brick_spacing) + 3*((brick_width - (2*brick_length)))/2)))
+                    T2 = Translation.from_vector((brick_frame.yaxis * ((((brick_length/3)*2)+(3*(brick_width - (2*brick_length)))) + 3*((brick_width - (2*brick_length)))/2)))
                     brick_frame = brick_frame.transformed(T2)
 
                     self.create_brick_and_add_to_assembly("half", "fixed", brick_frame) # adding the half brick for the corner
@@ -673,17 +673,17 @@ class CAEAssembly(Assembly):
 
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
                     rotated_frame = brick_frame.transformed(R)
-                    T2 = Translation.from_vector(rotated_frame.xaxis * ((((2*(brick_length + brick_spacing))-(brick_width - (2*(brick_length)))+brick_spacing)) + (brick_width/4) - ((2*brick_length - brick_width)/4)))
+                    T2 = Translation.from_vector(rotated_frame.xaxis * (((((brick_length))))))
                     brick_frame = rotated_frame.transformed(T2)
-                    T3 = Translation.from_vector(brick_frame.yaxis*(-1)*(brick_length/4))
-                    brick_frame = brick_frame.transformed(T3)
-
-                    self.create_brick_and_add_to_assembly("half", "fixed", brick_frame) # adding the half brick for the corner
-
-                    T3 = Translation.from_vector(brick_frame.yaxis * ((2*brick_length/3)-brick_spacing + ((2*brick_length - brick_width)/2)+(brick_length/4)))
+                    T3 = Translation.from_vector(brick_frame.yaxis*((brick_length/2)+ ((brick_width - (2*brick_length))/2)))
                     brick_frame = brick_frame.transformed(T3)
 
                     self.create_brick_and_add_to_assembly("full", "fixed", brick_frame) # adding the half brick for the corner
+
+                    T3 = Translation.from_vector(brick_frame.yaxis * (-1)* (((3*brick_length)/4)+brick_spacing/2))
+                    brick_frame = brick_frame.transformed(T3)
+
+                    self.create_brick_and_add_to_assembly("half", "fixed", brick_frame) # adding the half brick for the corner
 
             # Double-layer (insulated)
         else:
