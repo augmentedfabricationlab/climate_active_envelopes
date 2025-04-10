@@ -209,13 +209,6 @@ class CAEAssembly(Assembly):
                     brick_spacing=brick_spacing,
                     course_is_odd=course_is_odd)                              
 
-                # Adjust the initial brick position based on corner detection
-                # if start_edge_type == "corner":
-                #     initial_brick_position = adjusted_start_point
-                # if end_edge_type == "corner":
-                #     initial_brick_position = adjusted_end_point - (direction_vector * (total_length))
-                # else:
-
                 initial_brick_position = curve_midpoint - (direction_vector * (total_length / 2))
                 self.generate_vertical_bond(
                         initial_brick_position=initial_brick_position,
@@ -489,12 +482,8 @@ class CAEAssembly(Assembly):
 
 
                 # Double-layer wall? Add insulated brick shifted along y-axis
-                if wall_system == "double_layer":
-                    #R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
-                    #rotated_frame = brick_frame.transformed(R)
-                
+                if wall_system == "double_layer":                
                     T2 = Translation.from_vector(brick_frame.yaxis * ( ((brick_width/2)+brick_width/4) + brick_spacing - ((brick_width-(2*(brick_length)))/4)))
-                    #T21 = Translation.from_vector(brick_frame.xaxis * (-1*(brick_width/2)))
                     insulated_frame = brick_frame.transformed(T2)
                     if brick in range (0,2) and start_edge_type == "corner":
                         pass
@@ -507,8 +496,6 @@ class CAEAssembly(Assembly):
                         pass
                     else:
                         self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-
-
         # -------------------------
         # ODD COURSE: TWO LOOPS
         # -------------------------
@@ -544,7 +531,6 @@ class CAEAssembly(Assembly):
                     pass
                 else:
                     self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
-
 
                 # Single-layer (full)
                 if wall_system == "single_layer":
@@ -1053,9 +1039,6 @@ class CAEAssembly(Assembly):
 
         return total_length
 
-
-
-
     def apply_gradient(self, values, points, keys, transform_type, rotation_direction, nrbh_size, global_direction=np.array([0, 1, 0])):
         """
         Apply a gradient transformation to the parts.
@@ -1100,43 +1083,30 @@ class CAEAssembly(Assembly):
             translation_factor = value * -0.08  # Factor for translation
             rotation_factor = value * -0.1      # Factor for rotation
 
-            # --- Infer the brick's face orientation ---
-            # Try to get the box dimensions. If part.shape exists, it is assumed to be a Box.
-            try:
-                box = part.shape
-                xsize = box.xsize
-                ysize = box.ysize
-            except AttributeError:
-                # If shape or dimensions are missing, assume equal dimensions.
-                xsize, ysize = 1.0, 1.0
 
-            # Compute alignment of local axes with the global_direction.
-            # Convert axes to numpy arrays if needed.
-            local_xaxis = np.array(part.frame.xaxis)
-            local_yaxis = np.array(part.frame.yaxis)
-            dot_x = abs(np.dot(local_xaxis, global_direction))
-            dot_y = abs(np.dot(local_yaxis, global_direction))
 
-            # Decide which face is “front-facing.”
-            # If the part's smaller dimension is along an axis that better aligns with the
-            # global direction, consider that as the “shorter” face.
-            if xsize < ysize:
-                # xsize is the shorter dimension.
-                facing = "shorter" if dot_x >= dot_y else "longer"
-            else:
-                # ysize is the shorter dimension.
-                facing = "shorter" if dot_y >= dot_x else "longer"
 
-            # --- Apply transformation based on computed orientation ---
             if transform_type == "translate":
-                # As per your rule:
-                # if the brick is facing with its shorter edge, use the xaxis for translation,
-                # if facing with its longer edge, use the yaxis.
-                if facing == "shorter":
+                # Determine the orientation of the brick based on its local frame and global direction
+                brick_length, _, brick_width, _ = self.get_brick_dimensions()
+
+                local_xaxis, local_yaxis = part.frame.xaxis, part.frame.yaxis
+
+                # Compute the dot products to determine the facing direction
+                dot_x = abs(local_xaxis.dot(global_direction))  
+                dot_y = abs(local_yaxis.dot(global_direction))
+
+                if brick_length > brick_width:
+                    # xsize is the shorter dimension.
+                    facing = "header" if dot_x >= dot_y else "strecher"
+                else:
+                    # ysize is the shorter dimension.
+                    facing = "header" if dot_y >= dot_x else "strecher"
+            
+                if facing == "header":
                     translation_vector = local_yaxis * translation_factor
                 else:
                     translation_vector = local_xaxis * translation_factor
-
                 T = Translation.from_vector(translation_vector)
 
             elif transform_type == "rotate":
@@ -1159,9 +1129,7 @@ class CAEAssembly(Assembly):
             else:
                 continue
 
-            # Apply the transformation to the part.
             part.transform(T)
-
 
     def add_part_from_model(self, part, key=None, attr_dict=None, **kwargs):
         """Add a part to the assembly.
