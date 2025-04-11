@@ -60,8 +60,8 @@ Then run the installation in the rhinocode folder
   
 Open Github Desktop and clone the following repositories into you workspace folder:
 
-* [this repository](https://github.com/augmentedfabricationlab/climate_active_envelopes), 
-* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model),
+* [this repository](https://github.com/augmentedfabricationlab/robotic_bricklaying) and
+* [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model)
 
 
 ### 3. Install the repositories in editable mode
@@ -69,7 +69,7 @@ Open Github Desktop and clone the following repositories into you workspace fold
 Open Rhino, Grasshopper and a Python3 block. Go to Tools/Options and below add the following paths:
 
 * C:\Users\your_user_name\workspace\assembly_information_model\src
-* C:\Users\your_user_name\workspace\climate_active_envelopes\src
+* C:\Users\your_user_name\workspace\robotic_bricklaying\src
 
 
 **Voilà! You can now go to VS Code, Rhino or Grasshopper to run the example files!**
