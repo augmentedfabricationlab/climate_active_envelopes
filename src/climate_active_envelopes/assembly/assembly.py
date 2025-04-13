@@ -412,6 +412,7 @@ class CAEAssembly(Assembly):
                 initial_brick_position=initial_brick_position,
                 course_is_odd=course_is_odd,
                 direction_vector=direction_vector,
+                wall_system=wall_system,
                 brick_spacing=brick_spacing,
                 start_edge_type=start_edge_type,
                 end_edge_type=end_edge_type                        
@@ -422,6 +423,7 @@ class CAEAssembly(Assembly):
                 initial_brick_position=initial_brick_position,
                 course_is_odd=course_is_odd,
                 direction_vector=direction_vector,
+                wall_system=wall_system,
                 brick_spacing=brick_spacing,
                 start_edge_type=start_edge_type,
                 end_edge_type=end_edge_type,
@@ -579,6 +581,7 @@ class CAEAssembly(Assembly):
                                     initial_brick_position,
                                     course_is_odd,
                                     direction_vector,
+                                    wall_system,
                                     brick_spacing,
                                     start_edge_type,
                                     end_edge_type):
@@ -602,8 +605,8 @@ class CAEAssembly(Assembly):
         center_brick_frame = brick_full.frame
 
         if course_is_odd:
+
             bricks_per_course = 2
-            
             for brick in range(bricks_per_course):
                 T = direction_vector * (brick * (brick_width + brick_spacing))
                 brick_position = initial_brick_position + T
@@ -618,15 +621,20 @@ class CAEAssembly(Assembly):
                 brick_frame= brick_frame.transformed(T1)
 
                 self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
+                if brick == 0:
+                    T2 = Translation.from_vector(brick_frame.yaxis * (( (brick_length + (brick_width - (2*brick_length))+(brick_length/2+brick_spacing)))))
+                    brick_frame= brick_frame.transformed(T2)
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
 
-                if brick == 1:
+                    T3 = Translation.from_vector(brick_frame.yaxis * (( (brick_length + (brick_width - (2*brick_length))))))
+                    brick_frame= brick_frame.transformed(T3)
+                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
+                elif brick == 1:
+
                     T2 = Translation.from_vector(brick_frame.yaxis * (( (brick_length + (brick_width - (2*brick_length))))))
                     brick_frame= brick_frame.transformed(T2)
 
                     self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
-
-
-
 
             bricks_per_course = 3
         
@@ -645,11 +653,12 @@ class CAEAssembly(Assembly):
                 T1 = Translation.from_vector(-1* brick_frame.yaxis * (( (brick_width - brick_length) / 2)))
                 brick_frame= brick_frame.transformed(T1)
                 if brick == 0:
-                    T2 = Translation.from_vector((brick_frame.yaxis * ((((brick_length/3)*2)+(3*(brick_width - (2*brick_length)))) + 3*((brick_width - (2*brick_length)))/2)))
+                    #T2 = Translation.from_vector((brick_frame.yaxis * ((((brick_length/3)*2)+(3*(brick_width - (2*brick_length)))) + 3*((brick_width - (2*brick_length)))/2)))
+                    T2 = Translation.from_vector((brick_frame.yaxis * ((brick_length/2)+(((2*brick_spacing)+(brick_length/2))/2))))
                     brick_frame = brick_frame.transformed(T2)
 
                     self.create_brick_and_add_to_assembly("half", "fixed", brick_frame) # adding the half brick for the corner
-                elif brick == 1:
+                elif brick == 1 and wall_system == "double_layer":
 
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
                     rotated_frame = brick_frame.transformed(R)
@@ -658,7 +667,7 @@ class CAEAssembly(Assembly):
                     T3 = Translation.from_vector(brick_frame.yaxis*((((brick_length/2) + brick_length)/3)))
                     brick_frame = brick_frame.transformed(T3)
 
-                    self.create_brick_and_add_to_assembly("full", "fixed", brick_frame)
+                    self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame)
 
                     # T4 = Translation.from_vector(brick_frame.yaxis * (-1)* (((3*brick_length)/4)+brick_spacing/2))
                     T4 = Translation.from_vector(brick_frame.yaxis * (-1)* ((brick_length/2)+(((((brick_spacing - (brick_spacing/3.5)))+(brick_length/2))/2)))) # no idea how to do it cleaner (brick_spacing + (brick_spacing/2))
@@ -702,16 +711,16 @@ class CAEAssembly(Assembly):
                         brick_frame_final = brick_frame_final.transformed(T3)
                         self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
                         
-                        
+                        if wall_system == "double_layer":
 
-                        T3 = Translation.from_vector(brick_frame_final.xaxis * ((brick_width - (brick_length/2) - ((brick_width - (2*(brick_length)))/2) + brick_spacing)))
-                        T4 = Translation.from_vector(-1*(brick_frame_final.yaxis * ((2*(brick_length+ brick_spacing)))))
-                        brick_frame_final = brick_frame.transformed(T3*T4)
-                        self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
+                            T3 = Translation.from_vector(brick_frame_final.xaxis * ((brick_width - (brick_length/2) - ((brick_width - (2*(brick_length)))/2) + brick_spacing)))
+                            T4 = Translation.from_vector(-1*(brick_frame_final.yaxis * ((2*(brick_length+ brick_spacing)))))
+                            brick_frame_final = brick_frame.transformed(T3*T4)
+                            self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
 
-                        T5 = Translation.from_vector((brick_frame_final.yaxis * ((brick_length+ brick_spacing) - (brick_length/4))))
-                        brick_frame_final = brick_frame_final.transformed(T5)
-                        self.create_brick_and_add_to_assembly("half", "fixed", brick_frame_final)
+                            T5 = Translation.from_vector((brick_frame_final.yaxis * ((brick_length+ brick_spacing) - (brick_length/4))))
+                            brick_frame_final = brick_frame_final.transformed(T5)
+                            self.create_brick_and_add_to_assembly("half", "fixed", brick_frame_final)
 
 
 
