@@ -432,7 +432,7 @@ class CAEAssembly(Assembly):
 
 
             # Bricks laid short side out (rotated 90 degrees)
-            num_bricks = math.ceil(line_length / (brick_length + brick_spacing))
+            num_bricks = math.ceil(line_length / (brick_length + brick_spacing))+1
             num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
 
             # Shift the starting point to align to the middle of the long facing brick
@@ -548,7 +548,7 @@ class CAEAssembly(Assembly):
                         self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
 
             # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
-            num_bricks2 = math.ceil(line_length / (brick_length + brick_spacing))
+            num_bricks2 = math.ceil(line_length / (brick_length + brick_spacing))+1
             adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
 
             for brick in range(num_bricks2):
@@ -1057,6 +1057,8 @@ class CAEAssembly(Assembly):
                 return "translate" if brick_index % 2 == 0 else "fixed"
             elif ornament == "diamond":
                 return "translate" if brick_index % 2 == 0 else "fixed"
+            elif ornament == "diamond_2":
+                return "translate" if brick_index % 4 == 0 and course_index % 6 != 0  else "fixed"
             else:
                 return "fixed"
         else:
@@ -1067,8 +1069,11 @@ class CAEAssembly(Assembly):
                 return "fixed"
             elif ornament == "diamond":
                 return "translate" if brick_index % 2 == 0 else "fixed"
+            elif ornament == "diamond_2":
+                return "translate" if brick_index % 2 == 0 and course_index % 3 == 0  else "fixed"
             else:
                 return "fixed"
+
 
 
 
