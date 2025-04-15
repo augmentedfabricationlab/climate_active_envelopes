@@ -1058,9 +1058,19 @@ class CAEAssembly(Assembly):
             elif ornament == "diamond":
                 return "translate" if brick_index % 2 == 0 else "fixed"
             elif ornament == "diamond_2":
-                return "translate" if brick_index % 4 == 0 and course_index % 6 != 0  else "fixed"
-            else:
-                return "fixed"
+                if (brick_index % 2 == 0 and ((brick_index+2) % 8 != 0)) and course_index % 6 != 0 and course_index % 7 != 0 and course_index % 16 != 0 and course_index /2 != 1 and course_index /4 != 1:
+                    return "translate"
+                elif (brick_index % 2 == 0 and ((brick_index-2) % 8 != 0)) and course_index % 6 != 0 and course_index % 7 == 0:
+                    return "translate"
+                elif (brick_index % 2 == 0 and ((brick_index-2) % 8 != 0)) and course_index % 6 != 0 and course_index % 16 == 0:
+                    return "translate"
+                elif (brick_index % 2 == 0 and ((brick_index-2) % 8 != 0)) and course_index % 6 != 0 and course_index/2 == 1:
+                    return "translate"
+                elif (brick_index % 2 == 0 and ((brick_index-2) % 8 != 0)) and course_index % 6 != 0 and course_index/4 == 1:
+                    return "translate"
+                elif (brick_index + 2) % 4 == 0 and course_index % 6 == 0:
+                    return "translate"
+
         else:
             # ODD courses
             if ornament == "cross":
@@ -1070,9 +1080,12 @@ class CAEAssembly(Assembly):
             elif ornament == "diamond":
                 return "translate" if brick_index % 2 == 0 else "fixed"
             elif ornament == "diamond_2":
-                return "translate" if brick_index % 2 == 0 and course_index % 3 == 0  else "fixed"
-            else:
-                return "fixed"
+                if brick_index % 2 == 0 and course_index % 3 == 0:
+                    return "translate"
+                elif brick_index % 2 != 0 and course_index % 3 != 0 and (brick_index + course_index) % 4 == 0:
+                    return "translate"
+                else:
+                    return "fixed"
 
 
 
