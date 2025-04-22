@@ -4,7 +4,7 @@ title: Team
 ---
 ### Professorship of Digital Fabrication, Technical University of Munich
 
-#### Julia Fleckenstein
+<!-- #### Julia Fleckenstein
 <img src="{{site.baseurl}}images/team-jf.jpg" alt="Julia Fleckenstein" style="width:200px" class="drop-corners">
 
 #### Kathrin Dörfler
@@ -25,4 +25,4 @@ Kathrin Dörfler is an architect, researcher, and educator in computational desi
 ### studio molter
 
 #### Philipp Molter
-<img src="{{site.baseurl}}images/team-pm.png" alt="Philipp Molter" style="width:200px" class="drop-corners">
+<img src="{{site.baseurl}}images/team-pm.png" alt="Philipp Molter" style="width:200px" class="drop-corners"> -->
