@@ -39,7 +39,7 @@ Execute the commands below in Anaconda Prompt:
 
 It is good practice to ensure that you are using the latest version of pip. To update pip, run the following command:
 
-    (rfa) python -m pip install --upgrade pip
+    (cae) python -m pip install --upgrade pip
 
 Then run the installation in the rhinocode folder
 
