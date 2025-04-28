@@ -6,7 +6,6 @@ title: Getting Started
 **Quick links:** [COMPAS](https://compas.dev/compas/latest/index.html), [Ladybug Tools](https://www.ladybug.tools/)
 
 ## Requirements
-
 * Operating System: **Windows 10 Pro** <sup>(1)</sup>.
 * [Rhinoceros 3D 8.0](https://www.rhino3d.com/)
 * [Anaconda Python Distribution](https://www.anaconda.com/download/): 3.x
@@ -20,7 +19,7 @@ title: Getting Started
 * [compas 2.6.1](https://compas.dev/index.html)
 * [Shapely](https://pypi.org/project/shapely/) 
 
-## Getting Started
+### 1. Getting Started
 
 After installing Rhino 8, open Rhino and run **ScriptEditor** on the Rhino command line to **initialize Python**.
 
@@ -58,6 +57,9 @@ Execute the commands below:
     (base) conda create -n rfa -c conda-forge compas_fab
     (base) conda activate rfa
     (rfa) python -m pip install --upgrade pip
+
+Then run the installation in the rhinocode folder:
+    
     (rfa) cd .rhinocode/py39-rh8/ 
     (rfa) python -m pip install compas==2.6.1 compas_robots==0.6.0 roslibpy pyserial 
     (rfa) python -m pip install --no-deps compas_fab
@@ -65,9 +67,10 @@ Execute the commands below:
 
 #### Install Ladybug Tools to run the climatic simulations
 * Download and Install [Ladybug Tools](https://www.food4rhino.com/en/app/ladybug-tools) and [Radiance](https://github.com/LBNL-ETA/Radiance/releases/tag/27dbb0e0) to get access to Ladybug Tools 1.8.0 and its simulations
-* Find a [EPW Map](https://www.ladybug.tools/epwmap/) or use the epw file from munich provided in the rhino folder
+* Find a [EPW Map](https://www.ladybug.tools/epwmap/) or use the epw file from munich provided in the rhino folder. You need to load that file in grasshopper to run the simulations.
 
-* **Note**: If you work with Mac please install **OpenStudio** first. This needs to work together with your LadyBug version. LadyBug 1.8.0. works together with [OpenStudio 3.7.0](https://github.com/NREL/OpenStudio/releases/tag/v3.7.0)
+**Note**: If you work with Mac please install **OpenStudio** first. This needs to work together with your LadyBug version. LadyBug 1.8.0. works together with [OpenStudio 3.7.0](https://github.com/NREL/OpenStudio/releases/tag/v3.7.0)
+
 * Run the install grasshopper file for LadyBug and restart Rhino / Grasshopper
        
 ### 2. Cloning and installing the repository
@@ -81,7 +84,7 @@ Open Github Desktop and clone the following repositories into you workspace fold
 * [this repository](https://github.com/augmentedfabricationlab/robotic_bricklaying) and
 * [assembly_information_model](https://github.com/augmentedfabricationlab/assembly_information_model)
   
-* **Note**: Ensure that your branch on Github Desktop is set to **compas2**!
+**Note**: Ensure that your branch on Github Desktop is set to **compas2**!
 
 ### 3. Install the repositories in editable mode
 
