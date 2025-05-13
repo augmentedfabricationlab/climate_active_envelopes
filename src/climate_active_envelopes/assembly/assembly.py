@@ -1559,3 +1559,109 @@ class CAEAssembly(Assembly):
 
         return sequence[::-1]
     
+    def sort_parts_by_closest_neighbor(self, courses):
+        """Sort parts in each course by their XY coordinates.
+
+        Parameters
+        ----------
+        courses : list
+            A list of courses, where each course is a list of part keys.
+
+        Returns
+        -------
+        list
+            A list of sorted courses, where each course is a list of part keys sorted by XY coordinates.
+        """
+
+        sorted_courses = []
+        for course in courses:
+            if not course:
+                continue
+
+            # Start with the first part in the course
+            remaining_parts = set(course)
+            current_part = remaining_parts.pop()
+            sorted_course = [current_part]
+
+            while remaining_parts:
+                # Find the closest neighbor to the current part
+                current_x = self.graph.node_attribute(current_part, 'x')
+                current_y = self.graph.node_attribute(current_part, 'y')
+
+                closest_part = min(
+                    remaining_parts,
+                    key=lambda key: (
+                        (self.graph.node_attribute(key, 'x') - current_x) ** 2 +
+                        (self.graph.node_attribute(key, 'y') - current_y) ** 2
+                    )
+                )
+
+                # Add the closest part to the sorted list and remove it from remaining parts
+                sorted_course.append(closest_part)
+                remaining_parts.remove(closest_part)
+                current_part = closest_part
+
+            sorted_courses.append(sorted_course)
+
+        return sorted_courses
+
+    def sort_parts_by_direction(self, courses):
+        """Sort parts in each course by moving first in the positive X direction, then in the positive Y direction.
+
+        Parameters
+        ----------
+        courses : list
+            A list of courses, where each course is a list of part keys.
+
+        Returns
+        -------
+        list
+            A list of sorted courses, where each course is sorted by positive X and then positive Y direction.
+        """
+        sorted_courses = []
+        for course in courses:
+            if not course:
+                continue
+
+            # Sort parts by X first, then by Y
+            sorted_course = sorted(
+                course,
+                key=lambda key: (
+                    self.graph.node_attribute(key, 'x'),  # Sort by X coordinate
+                    self.graph.node_attribute(key, 'y')   # Then by Y coordinate
+                )
+            )
+            sorted_courses.append(sorted_course)
+
+        return sorted_courses
+
+    def reassign_part_keys(self, sorted_courses):
+        """Reassign the keys of the parts in the assembly based on the sorted courses.
+
+        Parameters
+        ----------
+        sorted_courses : list
+            A list of sorted courses, where each course is a list of part keys.
+        """
+        new_graph = Graph()
+        key_mapping = {}
+
+        # Flatten the sorted courses into a single list of parts
+        sorted_parts = [part for course in sorted_courses for part in course]
+
+        # Iterate through the sorted parts and reassign keys
+        for new_key, old_key in enumerate(sorted_parts):
+            part = self.graph.node_attribute(old_key, 'part')
+            attributes = self.graph.node_attributes(old_key)
+
+            # Add the part to the new graph with the new key
+            new_graph.add_node(new_key, **attributes)
+            new_graph.node_attribute(new_key, 'part', part)
+
+            # Store the mapping of old keys to new keys
+            key_mapping[old_key] = new_key
+
+        # Replace the old graph with the new graph
+        self.graph = new_graph
+
+        return key_mapping
