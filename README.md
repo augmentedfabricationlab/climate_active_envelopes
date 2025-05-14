@@ -66,7 +66,7 @@ Open Github Desktop and clone the following repositories into you workspace fold
 * [ur_fabrication_control](https://github.com/augmentedfabricationlab/ur_fabrication_control), 
 * [fabrication_manager](https://github.com/augmentedfabricationlab/fabrication_manager). 
 
-SWITCH TO compas2 BRANCH IN MOBILE_ROBOT_CONTROL AND UR_FABRICATION_CONTROL!!!!
+SWITCH TO compas2 BRANCH IN MOBILE_ROBOT_CONTROL AND compas2_fhs IN UR_FABRICATION_CONTROL!!!!
 
 ### 3. Install the repositories in editable mode
 
