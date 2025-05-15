@@ -321,8 +321,6 @@ class CAEAssembly(Assembly):
                                 j,
                                 ornament):
 
-
-
         brick_length, _, brick_width, _ = self.get_brick_dimensions()
         brick_full = self.brick_params["brick_full"]
         center_brick_frame = brick_full.frame
