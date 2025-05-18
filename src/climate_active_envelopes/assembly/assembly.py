@@ -1362,19 +1362,8 @@ class CAEAssembly(Assembly):
             current_course = courses[i]
             next_course = courses[i + 1]
 
-
             current_course_parts = current_course
             next_course_parts = next_course
-
-            # # Filter out parts with skip_intersections=True in the current course
-            # current_course_parts = [
-            #     part for part in current_course if not self.graph.node_attribute(part, 'skip_intersections')
-            # ]
-
-            # # Filter out parts with skip_intersections=True in the next course
-            # next_course_parts = [
-            #     part for part in next_course if not self.graph.node_attribute(part, 'skip_intersections')
-            # ]
 
             for part in current_course_parts:
                 part_polygon = polygons.get(part)
@@ -1393,8 +1382,14 @@ class CAEAssembly(Assembly):
                     # Compute intersection
                     intersection = shapely_part_polygon.intersection(shapely_neighbor_polygon)
                     if not intersection.is_empty:
-                        # Convert shapely intersection back to compas polygon
-                        intersection_coords = list(intersection.exterior.coords)
+                        # Handle different intersection types
+                        if intersection.geom_type == "Polygon":
+                            intersection_coords = list(intersection.exterior.coords)
+                        elif intersection.geom_type == "LineString":
+                            intersection_coords = list(intersection.coords)
+                        else:
+                            continue  # Skip Points or other types
+
                         intersection_points = [Point(x, y, part_polygon.points[0].z) for x, y in intersection_coords]
                         intersections[(part, neighbor)] = Polygon(intersection_points)
 
