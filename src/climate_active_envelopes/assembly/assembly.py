@@ -203,7 +203,7 @@ class CAEAssembly(Assembly):
                 
             if bond_type =="vertical_bond":
 
-                total_length = self.calculate_flemish_course_length(
+                total_length = self.calculate_vertical_course_length(
                     bricks_per_course=bricks_per_course,
                     brick_spacing=brick_spacing,
                     course_is_odd=course_is_odd)                              
@@ -283,204 +283,6 @@ class CAEAssembly(Assembly):
 
         self.add_part(my_brick, attr_dict={"brick_type": brick_type, "transform_type": transform_type})
 
-    def generate_vertical_bond_old(self,
-                                initial_brick_position,
-                                line_length,
-                                course_is_odd,
-                                direction_vector,
-                                wall_system,
-                                brick_spacing,
-                                start_edge_type,
-                                end_edge_type,
-                                j,
-                                ornament):
-
-        brick_length, _, brick_width, _ = self.get_brick_dimensions()
-        brick_full = self.brick_params["brick_full"]
-        center_brick_frame = brick_full.frame
-        num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
-
-        ornament = ornament  # "cross" or "straight", "diamond"
-        
-        if start_edge_type == "corner":
-            self.generate_corner_vertical_bond(
-                initial_brick_position=initial_brick_position,
-                course_is_odd=course_is_odd,
-                direction_vector=direction_vector,
-                brick_spacing=brick_spacing,
-                start_edge_type=start_edge_type,
-                end_edge_type=end_edge_type                        
-            )
-
-        elif end_edge_type == "corner":
-            self.generate_corner_vertical_bond(
-                initial_brick_position=initial_brick_position,
-                course_is_odd=course_is_odd,
-                direction_vector=direction_vector,
-                brick_spacing=brick_spacing,
-                start_edge_type=start_edge_type,
-                end_edge_type=end_edge_type,
-        )
-        if not course_is_odd:
-
-            # Bricks laid short side out (rotated 90 degrees)
-            num_bricks = math.ceil(line_length / (brick_length + brick_spacing))
-            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
-
-            # Shift the starting point to align to the middle of the long facing brick
-            adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
-
-            for brick in range(num_bricks):
-                T = direction_vector * (brick * (brick_length + (brick_spacing/2)+ ((brick_width - (2*brick_length))/2)))
-                brick_position = adjusted_initial_position + T
-
-                # Create base brick frame
-                if direction_vector[1] in [-1, 1]:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
-                else:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
-
-                # Rotate 90 degrees
-                R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
-                rotated_frame = brick_frame.transformed(R)
-
-                # Translate to align correctly
-                T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length) / 2))
-                brick_frame_final = rotated_frame.transformed(T1)
-
-                # Ornament logic for even courses
-                if ornament == "cross":
-                    if brick % 2 == 0 and j % 4 == 0:
-                        transform_type = "translate"
-                    elif brick % 2 != 0 and j % 4 != 0:
-                        transform_type = "translate"
-                    else:
-                        transform_type = "fixed"
-                elif ornament == "straight":
-                    transform_type = "translate" if brick % 2 == 0 else "fixed"
-                elif ornament == "diamond":
-                    transform_type = "translate" if brick % 2 == 0 else "fixed"
-                else:
-                    transform_type = "fixed"
-
-                # Add the brick
-                if brick in range (0,3) and start_edge_type == "corner" :
-                    pass
-                else:
-                    self.create_brick_and_add_to_assembly("full", transform_type, brick_frame_final)
-            
-            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
-
-            for brick in range(num_bricks1):
-                T = direction_vector * (brick * (brick_width + brick_spacing))
-                brick_position = initial_brick_position + T
-
-                # Create base brick frame
-                if direction_vector[1] in [-1, 1]:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
-                else:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
-
-
-                # Double-layer wall? Add insulated brick shifted along y-axis
-                if wall_system == "double_layer":                
-                    T2 = Translation.from_vector(brick_frame.yaxis * ( ((brick_width/2)+brick_width/4) + brick_spacing - ((brick_width-(2*(brick_length)))/4)))
-                    insulated_frame = brick_frame.transformed(T2)
-                    if brick in range (0,2) and start_edge_type == "corner":
-                        pass
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-
-                    T3 = Translation.from_vector(insulated_frame.yaxis * (brick_length+(brick_width-(2*(brick_length)))))
-                    insulated_frame = insulated_frame .transformed(T3)
-                    if brick in range (0,2) and start_edge_type == "corner":
-                        pass
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-        # -------------------------
-        # ODD COURSE: TWO LOOPS
-        # -------------------------
-        if course_is_odd:
-            # LOOP 1: Bricks laid long side out (normal orientation)
-            num_bricks1 = math.ceil(line_length / (brick_width + brick_spacing))
-
-            for brick in range(num_bricks1):
-                T = direction_vector * (brick * (brick_width + brick_spacing))
-                brick_position = initial_brick_position + T
-
-                # Create brick frame
-                if direction_vector[1] in [-1, 1]:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
-                else:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
-
-                # Ornament logic
-                if ornament == "cross":
-                    transform_type = "fixed"
-                elif ornament == "straight":
-                    transform_type = "fixed"
-                elif ornament == "diamond":
-                    transform_type = "translate" if brick % 2 == 0 else "fixed"
-                else:
-                    transform_type = "fixed"
-
-                T1 = Translation.from_vector(-1* brick_frame.yaxis * (( (brick_width - brick_length) / 2)))
-                brick_frame= brick_frame.transformed(T1)
-
-                # Add the brick
-                if brick in range (0,2) and start_edge_type == "corner":
-                    pass
-                else:
-                    self.create_brick_and_add_to_assembly("full", transform_type, brick_frame)
-
-                # Single-layer (full)
-                if wall_system == "single_layer":
-                    T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
-                    insulated_frame = brick_frame.transformed(T1)
-                    if brick in range (0,2) and start_edge_type == "corner":
-                        pass
-                    else:
-                        self.create_brick_and_add_to_assembly("full", "fixed", insulated_frame)
-
-                # Double-layer (insulated)
-                if wall_system == "double_layer":
-                    T1 = Translation.from_vector((brick_frame.yaxis * (brick_length+ (brick_width-(2*brick_length)))))
-                    insulated_frame = brick_frame.transformed(T1)
-                    if brick in range (0,2) and start_edge_type == "corner":
-                        pass
-
-                    else:
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", insulated_frame)
-
-            # LOOP 2: Bricks laid short side out, back (rotated 90 degrees)
-            num_bricks2 = math.ceil(line_length / (brick_length + brick_spacing))
-            adjusted_initial_position = initial_brick_position + direction_vector * ((brick_width - brick_length) / 2)
-
-            for brick in range(num_bricks2):
-                T = direction_vector * (brick * (brick_length + (brick_spacing/2)+ ((brick_width - (2*brick_length))/2)))
-                brick_position = initial_brick_position + T
-
-                # Create base brick frame
-                if direction_vector[1] in [-1, 1]:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.xaxis)
-                else:
-                    brick_frame = Frame(brick_position, direction_vector, center_brick_frame.yaxis)
-
-                # Rotate 90 degrees around Z
-                R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
-                rotated_frame = brick_frame.transformed(R)
-                
-                # Translate to align correctly
-                T1 = Translation.from_vector(rotated_frame.xaxis * (((2*brick_length + brick_spacing)) + ((brick_width - (2*(brick_length))))))
-                brick_frame_final = rotated_frame.transformed(T1)
-
-                if brick in range(0,3) and start_edge_type == "corner":
-                    pass
-                else:
-                    # Add insulated brick if double layer
-                    if wall_system == "double_layer":
-                        self.create_brick_and_add_to_assembly("insulated", "fixed", brick_frame_final)
-
     def generate_vertical_bond(self,
                                 initial_brick_position,
                                 edge_length,
@@ -522,7 +324,7 @@ class CAEAssembly(Assembly):
         center_brick_frame = brick_full.frame
 
         # Calculate the number of bricks per course
-        bricks_per_course = math.ceil(edge_length / (brick_width + brick_spacing))
+        bricks_per_course = math.ceil(max(0.0,edge_length) / (brick_width + brick_spacing))
 
         # Adjust the starting position for odd courses
         adjusted_initial_position = initial_brick_position + direction_vector * (brick_width / 2)
@@ -533,10 +335,11 @@ class CAEAssembly(Assembly):
             brick_position = adjusted_initial_position + T
 
             if ornament_type == "cross":
+                shifted = brick + course_index
                 if not course_is_odd:            
-                    if course_index %4 == 0 and brick %2 != 0:#header
+                    if course_index %4 == 0 and shifted %2 != 0:#header
                         transform_type = "translate"
-                    elif course_index %4 != 0 and brick %2 == 0:#header
+                    elif course_index %4 != 0 and shifted %2 == 0:#header
                         transform_type = "translate"
                     else:
                         transform_type = "fixed"
@@ -601,19 +404,19 @@ class CAEAssembly(Assembly):
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(90), brick_frame.point)
                     T5 = Translation.from_vector(brick_frame.xaxis * (brick_length + brick_spacing + brick_length/2 + brick_spacing/2 ))
                     brick_frame = brick_frame.transformed(R*T5)
-                    self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "fixed", frame=brick_frame)
+                    self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=brick_frame)
 
                     T6 = Translation.from_vector(brick_frame.yaxis * (brick_length + brick_spacing))
                     brick_frame = brick_frame.transformed(T6)
                     if brick != 0:
-                        self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "fixed", frame=brick_frame)
+                        self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=brick_frame)
 
                     # Duplicate the row in y-axis
                     R = Rotation.from_axis_and_angle(brick_frame.zaxis, math.radians(-90), brick_frame.point)
                     T7 = Translation.from_vector(brick_frame.yaxis * ( brick_length / 2 + brick_spacing / 2 + brick_length + brick_spacing))
                     T8 = Translation.from_vector(brick_frame.xaxis * (brick_width/2 + brick_spacing/2 ))
                     brick_frame = brick_frame.transformed(R*T7*T8)
-                    self.create_brick_and_add_to_assembly(brick_type="full", transform_type = "fixed", frame=brick_frame)
+                    self.create_brick_and_add_to_assembly(brick_type="insulated", transform_type = "fixed", frame=brick_frame)
 
                 else:
                     # Duplicate the row in y-axis
@@ -781,6 +584,43 @@ class CAEAssembly(Assembly):
                     T1 = Translation.from_vector(rotated_frame.yaxis * ((brick_width - brick_length)))
                     brick_frame_final = rotated_frame.transformed(T1)
                     self.create_brick_and_add_to_assembly("full", "fixed", brick_frame_final)
+
+    def calculate_vertical_course_length(self,
+                                        bricks_per_course,
+                                        brick_spacing,
+                                        course_is_odd):
+        """
+        Calculate the total length of a vertical bond course 
+
+        Parameters
+        ----------
+        brick_full : :class:`CAEPart`
+            The full brick to use for the wall.
+        bricks_per_course : int
+            The number of bricks in the course.
+        brick_spacing : float
+            The spacing between bricks.
+        course_is_odd : bool
+            True if the course is an odd-numbered course, False otherwise.
+
+        Returns
+        -------
+        float
+            The total length of the brick bond course.
+        """
+
+        brick_length, _, brick_width, _ = self.get_brick_dimensions()
+
+        # Calculate the total length based on the pattern
+        if course_is_odd:
+            # Odd courses start and end with a header, alternate in between
+            total_length = (bricks_per_course // 2) * (brick_width + brick_length + 2 * brick_spacing)
+        else:
+            # Even courses start and end with a stretcher, alternate in between
+            total_length = (bricks_per_course // 2) * (brick_length + brick_width + 2 * brick_spacing)
+
+        return total_length
+
 
     def generate_flemish_bond(self,
                                 initial_brick_position,
@@ -1109,13 +949,13 @@ class CAEAssembly(Assembly):
         # Build a KDTree for fast nearest neighbor search.
         tree = cKDTree(points)
 
-        # Normalize the global direction (using compas.geometry.normalize_vector or numpy)
+        # Normalize the global direction 
         global_direction = Vector(0, 1, 0)
         global_direction = normalize_vector(global_direction)
 
-        z_values = {key: self.graph.node_attribute(key, "z") for key in keys}
-        unique_z_values = sorted(set(z_values.values()))
-        z_to_course_index = {z: i for i, z in enumerate(unique_z_values)}
+        #z_values = {key: self.graph.node_attribute(key, "z") for key in keys}
+        #unique_z_values = sorted(set(z_values.values()))
+        #z_to_course_index = {z: i for i, z in enumerate(unique_z_values)}
 
         for key in keys:
             part = self.part(key)
@@ -1463,96 +1303,96 @@ class CAEAssembly(Assembly):
             # Store the interface points as a node attribute
             self.graph.node_attribute(key, 'interface_points', projected_vertices)
 
-    def assembly_building_sequence(self, key):
-        """Determine the sequence of bricks that need to be assembled to be able to
-        place a target brick.
+    # def assembly_building_sequence(self, key):
+    #     """Determine the sequence of bricks that need to be assembled to be able to
+    #     place a target brick.
 
-        Parameters
-        ----------
-        assembly : Assembly
-            An assembly data structure.
-        key : hashable
-            The block identifier.
+    #     Parameters
+    #     ----------
+    #     assembly : Assembly
+    #         An assembly data structure.
+    #     key : hashable
+    #         The block identifier.
 
-        Returns
-        -------
-        list
-            A sequence of block identifiers.
-        Notes
-        -----
-        This will only work for properly supported *wall* assemblies of which the
-        interfaces and courses have been identified.
+    #     Returns
+    #     -------
+    #     list
+    #         A sequence of block identifiers.
+    #     Notes
+    #     -----
+    #     This will only work for properly supported *wall* assemblies of which the
+    #     interfaces and courses have been identified.
 
-        Examples
-        --------
-        .. code-block:: python
+    #     Examples
+    #     --------
+    #     .. code-block:: python
 
-            # this code only works in Rhino
+    #         # this code only works in Rhino
 
-            assembly = Assembly.from_json(...)
+    #         assembly = Assembly.from_json(...)
 
-            placed = list(assembly.nodes_where({'is_placed': True}))
+    #         placed = list(assembly.nodes_where({'is_placed': True}))
 
-            artist = AssemblyArtist(assembly, layer="Assembly")
+    #         artist = AssemblyArtist(assembly, layer="Assembly")
 
-            artist.clear_layer()
-            artist.draw_nodes()
-            artist.draw_blocks(show_faces=False, show_edges=True)
+    #         artist.clear_layer()
+    #         artist.draw_nodes()
+    #         artist.draw_blocks(show_faces=False, show_edges=True)
 
-            if placed:
-                artist.draw_blocks(keys=placed, show_faces=True, show_edges=False)
+    #         if placed:
+    #             artist.draw_blocks(keys=placed, show_faces=True, show_edges=False)
 
-            artist.redraw()
+    #         artist.redraw()
 
-            key = AssemblyHelper.select_node(assembly)
+    #         key = AssemblyHelper.select_node(assembly)
 
-            sequence = assembly_block_building_sequence(assembly, key)
+    #         sequence = assembly_block_building_sequence(assembly, key)
 
-            print(sequence)
+    #         print(sequence)
 
-            keys = list(set(sequence) - set(placed))
+    #         keys = list(set(sequence) - set(placed))
 
-            artist.draw_blocks(keys=keys, show_faces=True, show_edges=False)
-            artist.redraw()
+    #         artist.draw_blocks(keys=keys, show_faces=True, show_edges=False)
+    #         artist.redraw()
 
-        """
+    #     """
 
-        course = self.graph.node_attribute(key, 'course')
+    #     course = self.graph.node_attribute(key, 'course')
 
-        if course is None:
-            raise Exception("The courses of the assembly have not been identified.")
+    #     if course is None:
+    #         raise Exception("The courses of the assembly have not been identified.")
 
-        sequence = []
-        seen = set()
-        tovisit = deque([(key, course + 1)])
+    #     sequence = []
+    #     seen = set()
+    #     tovisit = deque([(key, course + 1)])
 
-        while tovisit:
-            k, course_above = tovisit.popleft()
+    #     while tovisit:
+    #         k, course_above = tovisit.popleft()
 
-            if k not in seen:
-                seen.add(k)
-                course = self.graph.node_attribute(k, 'course')
+    #         if k not in seen:
+    #             seen.add(k)
+    #             course = self.graph.node_attribute(k, 'course')
 
-                if course_above == course + 1:
-                    sequence.append(k)
-                    for nbr in self.graph.neighbors(k):
-                        if nbr not in seen:
-                            tovisit.append((nbr, course))
+    #             if course_above == course + 1:
+    #                 sequence.append(k)
+    #                 for nbr in self.graph.neighbors(k):
+    #                     if nbr not in seen:
+    #                         tovisit.append((nbr, course))
 
-        for i in range(len(sequence) - 1):
-            self.add_connection(sequence[i], sequence[i + 1])
+    #     for i in range(len(sequence) - 1):
+    #         self.add_connection(sequence[i], sequence[i + 1])
 
-        for i in range(len(sequence)):
-            current_node = sequence[i]
-            current_z = self.graph.node_attribute(current_node, 'z')
-            for j in range(i + 1, len(sequence)):
-                next_node = sequence[j]
-                next_z = self.graph.node_attribute(next_node, 'z')
-                if next_z > current_z:
-                    self.add_connection(current_node, next_node)
-                    break
+    #     for i in range(len(sequence)):
+    #         current_node = sequence[i]
+    #         current_z = self.graph.node_attribute(current_node, 'z')
+    #         for j in range(i + 1, len(sequence)):
+    #             next_node = sequence[j]
+    #             next_z = self.graph.node_attribute(next_node, 'z')
+    #             if next_z > current_z:
+    #                 self.add_connection(current_node, next_node)
+    #                 break
 
-        return sequence[::-1]
+    #     return sequence[::-1]
     
     def sort_parts_by_closest_neighbor(self, courses):
         """Sort parts in each course by their XY coordinates.
