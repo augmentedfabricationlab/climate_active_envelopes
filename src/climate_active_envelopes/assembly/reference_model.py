@@ -128,33 +128,84 @@ class CAEReferenceModel(CellNetwork):
         """
 
         face_types = {'walls': [], 'slabs': []}
+        faces_to_cells = self.create_face_cell_dict()
 
-        # Create a dictionary mapping faces to cells
-        faces_to_cells_dict = self.create_face_cell_dict()
+        # Helper: plane id for axis-aligned faces (x=const or y=const or z=const)
+        def plane_key(face, ndigits=6):
+            nx, ny, nz = self.face_normal(face)
+            # use the first vertex to read the plane coordinate
+            vkeys = self.face_vertices(face)
+            x, y, z = self.vertex_coordinates(vkeys[0])
+            if abs(nx) == 1:     # plane x = const
+                return ('x', round(x, ndigits))
+            if abs(ny) == 1:     # plane y = const
+                return ('y', round(y, ndigits))
+            # horizontal plane (slab)
+            return ('z', round(z, ndigits))
 
-        # Classify faces as 'outer walls' or 'slabs'
-        for face, cell in faces_to_cells_dict.items():
-            normal = self.face_normal(face)
-            #face between minimum two cells and within the vertical faces
-            if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]): 
-                face_type = 'inner wall'
-                face_types['walls'].append((face, face_type))
+        # Group faces by vertical plane and collect all touching cells per plane
+        plane_to_faces = {}
+        plane_to_cells = {}
+        for face in faces_to_cells:
+            nx, ny, nz = self.face_normal(face)
+            if abs(nz) == 1:  # skip horizontal here; they are slabs
+                continue
+            pk = plane_key(face)
+            plane_to_faces.setdefault(pk, []).append(face)
+            plane_to_cells.setdefault(pk, set()).update(faces_to_cells[face])
 
-            # within vertical faces and not between two cells    
-            elif normal[1] in [-1, 1] or normal[0] in [-1, 1]:  
-                face_type = 'outer wall'
-                face_types['walls'].append((face, face_type))
+        # Classify
+        for face, cells in faces_to_cells.items():
+            nx, ny, nz = self.face_normal(face)
 
-            # all horizontal faces
-            else: #normal[2] in [-1, 1] as horizontal faces
+            # Horizontal faces are slabs
+            if abs(nz) == 1:
                 face_type = 'slab'
                 face_types['slabs'].append((face, face_type))
+            else:
+                # vertical faces: inner if
+                #   a) face is shared between 2 cells (classic adjacency), or
+                #   b) its vertical plane is touched by 3+ cells (co-planar split faces)
+                pk = plane_key(face)
+                if len(cells) >= 2 or len(plane_to_cells.get(pk, [])) >= 3:
+                    face_type = 'inner wall'
+                else:
+                    face_type = 'outer wall'
+                face_types['walls'].append((face, face_type))
 
             self.face_attribute(face, 'face_type', face_type)
 
         self.face_types = face_types
-
         return face_types
+
+        # face_types = {'walls': [], 'slabs': []}
+
+        # # Create a dictionary mapping faces to cells
+        # faces_to_cells_dict = self.create_face_cell_dict()
+
+        # # Classify faces as 'outer walls' or 'slabs'
+        # for face, cell in faces_to_cells_dict.items():
+        #     normal = self.face_normal(face)
+        #     #face between minimum two cells and within the vertical faces
+        #     if len(cell) >= 2 and (normal[1] in [-1, 1] or normal[0] in [-1, 1]): 
+        #         face_type = 'inner wall'
+        #         face_types['walls'].append((face, face_type))
+
+        #     # within vertical faces and not between two cells    
+        #     elif normal[1] in [-1, 1] or normal[0] in [-1, 1]:  
+        #         face_type = 'outer wall'
+        #         face_types['walls'].append((face, face_type))
+
+        #     # all horizontal faces
+        #     else: #normal[2] in [-1, 1] as horizontal faces
+        #         face_type = 'slab'
+        #         face_types['slabs'].append((face, face_type))
+
+        #     self.face_attribute(face, 'face_type', face_type)
+
+        # self.face_types = face_types
+
+        # return face_types
     
 
     def get_face_types(self):
